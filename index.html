@@ -1,172 +1,133 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>BTC/USD Ultimate Terminal (Auto-Pilot Quant Bot)</title>
+	<title>BTC/USD TouchWiz Quant Bot (Equity Curve Edition)</title>
 	<style>
-		body {
-			background-color: #050507;
-			color: #d1d1d1;
-			font-family: 'SF Mono', 'Courier New', Courier, monospace;
-			margin: 0;
-			padding: 20px;
-			overflow: hidden;
+		/* ANDROID 4.4.2 / TOUCHWIZ HOLO DARK THEME */
+		@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+		:root {
+			--bg-dark: #000000;
+			--panel-bg: #111111;
+			--border-main: #333333;
+			--holo-blue: #33b5e5;
+			--holo-green: #99cc00;
+			--holo-red: #ff4444;
+			--holo-orange: #ffbb33;
+			--text-main: #dddddd;
+			--text-muted: #888888;
+		}
+
+		* {
 			box-sizing: border-box;
+		}
+
+		body {
+			background-color: var(--bg-dark);
+			color: var(--text-main);
+			font-family: 'Roboto', Arial, sans-serif;
+			margin: 0;
+			padding: 15px;
+			overflow: hidden;
 			height: 100vh;
 			display: flex;
 			flex-direction: column;
 		}
 
+		/* HEADER - ANDROID STATUS BAR VIBE */
 		#header {
-			display: grid;
-			grid-template-columns: 1fr auto auto;
-			gap: 20px;
-			border-bottom: 1px dashed #333;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			border-bottom: 2px solid var(--border-main);
 			padding-bottom: 10px;
-			margin-bottom: 10px;
+			margin-bottom: 15px;
 			flex-shrink: 0;
-			align-items: start;
 		}
 
 		.header-left {
 			display: flex;
 			flex-direction: column;
-			gap: 5px;
+			gap: 2px;
 		}
 
 		h1 {
 			margin: 0;
-			font-size: 13px;
-			color: #555;
+			font-size: 14px;
+			color: var(--text-main);
 			font-weight: normal;
 		}
 
+		/* PRICE & BALANCE LINE */
 		.price-line {
 			display: flex;
-			align-items: baseline;
+			align-items: center;
 			gap: 20px;
 			margin-top: 5px;
 		}
 
 		.main-price {
-			font-size: 64px;
+			font-size: 48px;
 			font-weight: bold;
-			color: #ffb100;
-			text-shadow: 0 0 20px rgba(255, 177, 0, 0.2);
+			color: var(--text-main);
 			letter-spacing: -1px;
-			transition: color 0.1s;
 		}
 
-		.sync-label {
-			background-color: #1a1400;
-			color: #ffb100;
-			padding: 4px 8px;
-			border-radius: 4px;
-			font-weight: bold;
-			font-size: 11px;
-			border: 1px solid #cc8d00;
-			display: inline-block;
-			letter-spacing: 0.5px;
-		}
-
-		.sync-box {
-			background-color: #0a0a0d;
-			border: 1px solid #00FF41;
-			padding: 10px 15px;
-			border-radius: 8px;
-			box-shadow: inset 0 0 15px rgba(0, 255, 65, 0.1);
+		/* TOP BALANCE BOX */
+		.header-balance-box {
+			background: #1a1a1a;
+			border: 1px solid var(--border-main);
+			padding: 8px 15px;
+			border-radius: 2px;
+			border-left: 4px solid var(--holo-green);
 			display: flex;
 			flex-direction: column;
-			gap: 8px;
-			min-width: 240px;
+			justify-content: center;
 		}
 
-		.sync-title {
+		.bal-title {
 			font-size: 10px;
-			color: #00FF41;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			font-weight: bold;
 			letter-spacing: 1px;
+		}
+
+		.bal-val {
+			font-size: 26px;
 			font-weight: bold;
-			display: flex;
-			justify-content: space-between;
-		}
-
-		.sync-title span.pulse {
-			width: 8px;
-			height: 8px;
-			background: #00FF41;
-			border-radius: 50%;
-			box-shadow: 0 0 8px #00FF41;
-			animation: pulse-green 1.5s infinite;
-		}
-
-		.sync-input-group {
-			display: flex;
-			gap: 5px;
-		}
-
-		.sync-input-group button.auto-peg {
-			background: #00FF41;
-			color: #000;
-			border: none;
-			padding: 6px 10px;
-			font-weight: bold;
-			cursor: pointer;
-			font-family: 'SF Mono', monospace;
-			border-radius: 3px;
-			width: 100%;
-			transition: 0.2s;
-		}
-
-		.sync-input-group button.auto-peg.active {
-			background: #ffb100;
-			box-shadow: 0 0 10px rgba(255, 177, 0, 0.5);
-		}
-
-		.sync-status {
-			font-size: 10px;
-			color: #888;
+			color: var(--holo-green);
 			margin-top: 2px;
 		}
 
 		.timer-box {
 			text-align: right;
-			background-color: #0a0a0d;
-			border: 1px solid #222;
-			padding: 10px 15px;
-			border-radius: 8px;
-			min-width: 170px;
-			box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
 		}
 
 		.timer-title {
-			font-size: 10px;
-			color: #666;
-			letter-spacing: 1.5px;
-			margin-bottom: 3px;
+			font-size: 12px;
+			color: var(--holo-blue);
+			margin-bottom: 2px;
+			text-transform: uppercase;
+			font-weight: bold;
 		}
 
 		.timer-interval {
-			font-size: 12px;
-			color: #ffb100;
-			font-weight: bold;
-			margin-bottom: 5px;
-			background: #1a1400;
-			display: inline-block;
-			padding: 2px 6px;
-			border-radius: 3px;
+			font-size: 14px;
+			color: var(--text-muted);
+			margin-bottom: 2px;
 		}
 
 		.timer-display {
-			font-size: 32px;
+			font-size: 36px;
 			font-weight: bold;
-			color: #FF003C;
-			font-family: 'Courier New', Courier, monospace;
-			text-shadow: 0 0 12px rgba(255, 0, 60, 0.4);
-			margin-bottom: 5px;
+			color: var(--text-main);
 		}
 
+		/* MAIN LAYOUT */
 		#main-container {
 			display: flex;
 			gap: 15px;
@@ -178,7 +139,7 @@
 			width: 360px;
 			display: flex;
 			flex-direction: column;
-			gap: 10px;
+			gap: 15px;
 			flex-shrink: 0;
 			overflow-y: auto;
 			padding-right: 5px;
@@ -189,238 +150,210 @@
 		}
 
 		.left-column::-webkit-scrollbar-thumb {
-			background: #333;
-			border-radius: 4px;
+			background: var(--border-main);
 		}
 
 		.right-column {
 			flex-grow: 1;
 			display: flex;
 			flex-direction: column;
-			gap: 10px;
+			gap: 15px;
 			min-width: 0;
 		}
 
+		/* PANELS - TOUCHWIZ STYLE */
 		.panel {
-			background-color: #0a0a0d;
-			border: 1px solid #1a1a1a;
-			padding: 12px;
-			border-radius: 8px;
+			background-color: var(--panel-bg);
+			border: 1px solid var(--border-main);
+			padding: 15px;
+			border-radius: 4px;
 			display: flex;
 			flex-direction: column;
 			flex-shrink: 0;
 		}
 
 		.panel-title {
-			font-size: 11px;
-			color: #666;
-			margin-bottom: 8px;
+			font-size: 14px;
+			color: var(--holo-blue);
+			margin-bottom: 10px;
 			text-transform: uppercase;
-			letter-spacing: 1.5px;
+			font-weight: bold;
+			border-bottom: 2px solid var(--holo-blue);
+			padding-bottom: 5px;
 			display: flex;
 			justify-content: space-between;
+			align-items: baseline;
 		}
 
-		/* PORTFÖY VE OTO-PİLOT KUTUSU */
-		.portfolio-box {
-			background: linear-gradient(180deg, #111 0%, #050507 100%);
-			border: 1px solid #cc8d00;
-			border-radius: 6px;
-			padding: 10px;
-			margin-bottom: 5px;
-			display: flex;
-			flex-direction: column;
-			gap: 10px;
-			position: relative;
+		/* BOT STATUS */
+		.bot-status-box {
+			background: #1a1a1a;
+			padding: 15px;
+			border: 1px solid var(--border-main);
+			text-align: center;
+			font-size: 14px;
+			color: var(--text-main);
+			font-weight: bold;
+			text-transform: uppercase;
+			border-left: 5px solid var(--text-muted);
 		}
 
+		.status-sniping {
+			border-left-color: var(--holo-orange);
+			background: #1a1600;
+		}
+
+		.status-fired {
+			border-left-color: var(--holo-green);
+			background: #0a1a0a;
+		}
+
+		/* PORTFOLIO & AUTOPILOT */
 		.balance-row {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			border-bottom: 1px dashed #333;
-			padding-bottom: 8px;
+			margin-bottom: 15px;
 		}
 
-		.balance-label {
-			font-size: 11px;
-			color: #888;
-		}
-
-		.balance-value {
-			font-size: 24px;
-			font-weight: bold;
-			color: #00FF41;
-			text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-		}
-
-		.reset-btn {
-			background: #333;
-			color: #aaa;
-			border: 1px solid #444;
-			padding: 3px 6px;
-			font-size: 9px;
+		.btn-simple {
+			background: #222;
+			color: var(--text-main);
+			border: 1px solid var(--border-main);
+			padding: 8px 15px;
+			font-size: 12px;
 			cursor: pointer;
-			border-radius: 3px;
+			border-radius: 2px;
+			font-weight: bold;
 		}
 
-		.reset-btn:hover {
-			background: #555;
-			color: #fff;
+		.btn-simple:hover {
+			background: #333;
 		}
 
-		/* OTO-PİLOT ŞALTERİ */
 		.auto-trade-switch {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			background: #000;
-			padding: 8px;
-			border-radius: 4px;
-			border: 1px solid #333;
+			background: #222;
+			padding: 12px;
+			border-radius: 2px;
+			margin-bottom: 10px;
+			border: 1px solid var(--border-main);
 		}
 
 		.auto-trade-label {
-			font-size: 11px;
+			font-size: 14px;
 			font-weight: bold;
-			color: #888;
-			display: flex;
-			align-items: center;
-			gap: 5px;
-		}
-
-		.auto-trade-label span.indicator {
-			width: 8px;
-			height: 8px;
-			border-radius: 50%;
-			background: #444;
-			display: inline-block;
-		}
-
-		.auto-trade-label.active {
-			color: #00FF41;
-		}
-
-		.auto-trade-label.active span.indicator {
-			background: #00FF41;
-			box-shadow: 0 0 8px #00FF41;
+			color: var(--text-main);
 		}
 
 		.toggle-btn {
-			background: #222;
-			color: #fff;
-			border: 1px solid #444;
-			padding: 5px 15px;
-			font-size: 10px;
+			background: #333;
+			color: var(--text-muted);
+			border: none;
+			padding: 8px 20px;
+			font-size: 14px;
 			font-weight: bold;
 			cursor: pointer;
-			border-radius: 4px;
-			transition: 0.3s;
+			border-radius: 2px;
 		}
 
 		.toggle-btn.active {
-			background: #00FF41;
+			background: var(--holo-green);
 			color: #000;
-			border-color: #00FF41;
-			box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
 		}
 
 		.odds-container {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
-			gap: 8px;
-			margin-top: 5px;
+			gap: 10px;
+			margin-bottom: 10px;
 			text-align: center;
 		}
 
 		.odds-box {
-			background: #000;
-			border: 1px dashed #444;
-			border-radius: 4px;
-			padding: 6px;
+			background: #222;
+			border: 1px solid var(--border-main);
+			border-radius: 2px;
+			padding: 10px;
 			display: flex;
 			flex-direction: column;
-			gap: 2px;
+			gap: 5px;
 		}
 
 		.odds-title {
-			font-size: 9px;
-			color: #888;
+			font-size: 11px;
+			color: var(--text-muted);
 		}
 
 		.odds-val {
-			font-size: 16px;
+			font-size: 20px;
 			font-weight: bold;
 		}
 
 		.odds-val.up {
-			color: #00FF41;
+			color: var(--holo-green);
 		}
 
 		.odds-val.down {
-			color: #FF003C;
+			color: var(--holo-red);
 		}
 
 		.manual-bet-cover {
 			display: none;
+			margin-bottom: 10px;
 		}
 
 		.manual-bet-cover.active {
 			display: block;
 		}
 
-		.bet-inputs {
-			display: grid;
-			grid-template-columns: 1fr;
-			gap: 8px;
-			margin-top: 5px;
-		}
-
 		.bet-input-group {
 			display: flex;
 			flex-direction: column;
-			gap: 4px;
+			gap: 5px;
 		}
 
 		.bet-input-group label {
-			font-size: 9px;
-			color: #888;
+			font-size: 12px;
+			color: var(--text-muted);
 			display: flex;
 			justify-content: space-between;
 		}
 
 		.bet-input-group input {
-			background: #000;
-			border: 1px solid #333;
-			color: #fff;
-			padding: 8px;
-			font-family: 'SF Mono', monospace;
-			font-size: 14px;
+			background: #222;
+			border: 1px solid var(--border-main);
+			color: var(--text-main);
+			padding: 10px;
+			font-size: 16px;
 			outline: none;
-			border-radius: 3px;
-			text-align: center;
-			font-weight: bold;
+			border-radius: 2px;
+		}
+
+		.bet-input-group input:focus {
+			border-color: var(--holo-blue);
 		}
 
 		.bet-buttons {
 			display: grid;
 			grid-template-columns: 1fr 1fr;
-			gap: 8px;
-			margin-top: 5px;
+			gap: 10px;
+			margin-top: 10px;
 		}
 
 		.btn-bet {
-			padding: 10px 5px;
+			padding: 15px 5px;
 			border: none;
-			border-radius: 4px;
-			font-family: 'SF Mono', monospace;
+			border-radius: 2px;
+			font-size: 14px;
 			font-weight: bold;
 			cursor: pointer;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
-			gap: 4px;
-			transition: 0.2s;
+			gap: 5px;
 		}
 
 		.btn-bet:disabled {
@@ -429,119 +362,106 @@
 		}
 
 		.btn-up {
-			background-color: rgba(0, 255, 65, 0.1);
-			color: #00FF41;
-			border: 1px solid #00FF41;
+			background: #1a2a1a;
+			color: var(--holo-green);
+			border: 1px solid var(--holo-green);
+		}
+
+		.btn-up:hover:not(:disabled) {
+			background: var(--holo-green);
+			color: #000;
 		}
 
 		.btn-down {
-			background-color: rgba(255, 0, 60, 0.1);
-			color: #FF003C;
-			border: 1px solid #FF003C;
+			background: #2a1a1a;
+			color: var(--holo-red);
+			border: 1px solid var(--holo-red);
+		}
+
+		.btn-down:hover:not(:disabled) {
+			background: var(--holo-red);
+			color: #fff;
 		}
 
 		.active-bet-card {
-			background: #1a1400;
-			border: 1px solid #ffb100;
-			padding: 8px;
-			border-radius: 4px;
-			margin-top: 5px;
+			background: #222;
+			border-left: 4px solid var(--holo-orange);
+			padding: 12px;
+			border-radius: 2px;
+			margin-top: 10px;
 			display: none;
 		}
 
 		.active-bet-title {
-			font-size: 10px;
-			color: #ffb100;
+			font-size: 12px;
+			color: var(--holo-orange);
 			font-weight: bold;
-			margin-bottom: 5px;
+			margin-bottom: 10px;
 			display: flex;
 			justify-content: space-between;
 		}
 
 		.active-bet-details {
-			font-size: 11px;
-			color: #ddd;
+			font-size: 14px;
+			color: var(--text-main);
 			display: flex;
 			justify-content: space-between;
 		}
 
+		/* TARGET ENGINE */
 		.beat-engine-box {
-			background-color: #111;
-			border: 1px solid #333;
-			border-radius: 6px;
-			padding: 10px;
 			display: flex;
 			flex-direction: column;
-			gap: 8px;
+			gap: 10px;
 		}
 
 		.beat-row {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
+			background: #222;
+			padding: 10px;
+			border-radius: 2px;
 		}
 
 		.beat-label {
-			font-size: 11px;
-			color: #888;
+			font-size: 12px;
+			color: var(--text-muted);
 		}
 
 		.beat-value {
-			font-size: 14px;
+			font-size: 16px;
 			font-weight: bold;
-			color: #ffb100;
+			color: var(--text-main);
 		}
 
-		.gap-up {
-			color: #00FF41;
-			font-size: 13px;
-			font-weight: bold;
-			text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
-		}
-
-		.gap-down {
-			color: #FF003C;
-			font-size: 13px;
-			font-weight: bold;
-			text-shadow: 0 0 5px rgba(255, 0, 60, 0.4);
-		}
-
-		.gap-neutral {
-			color: #888;
-			font-size: 13px;
-			font-weight: bold;
-		}
-
+		/* HISTORY LOGS */
 		#history-logs {
 			flex-grow: 1;
 			overflow-y: auto;
-			font-size: 11px;
-			color: #999;
+			font-size: 12px;
 			display: flex;
 			flex-direction: column;
 			gap: 5px;
 			padding-right: 5px;
-			min-height: 150px;
+			min-height: 100px;
 		}
 
 		.history-entry {
-			background-color: #111;
-			border-left: 3px solid #555;
-			padding: 8px;
-			border-radius: 0 4px 4px 0;
+			background-color: #222;
+			border-left: 3px solid var(--text-muted);
+			padding: 10px;
 			display: flex;
 			flex-direction: column;
-			gap: 4px;
+			gap: 5px;
 		}
 
 		.history-entry.won {
-			border-left-color: #00FF41;
-			background-color: rgba(0, 255, 65, 0.05);
+			border-left-color: var(--holo-green);
 		}
 
 		.history-entry.lost {
-			border-left-color: #FF003C;
-			background-color: rgba(255, 0, 60, 0.05);
+			border-left-color: var(--holo-red);
 		}
 
 		.hist-row {
@@ -551,105 +471,54 @@
 		}
 
 		.hist-time {
-			color: #888;
-			font-size: 10px;
+			color: var(--text-muted);
+			font-size: 11px;
 		}
 
-		/* HAL-9000 STİLLERİ (YENİ ANALİZ METRİKLERİ) */
-		.hal-panel {
-			background: linear-gradient(180deg, #0d0505 0%, #050507 100%);
-			border: 1px solid #FF003C;
-			box-shadow: inset 0 0 20px rgba(255, 0, 60, 0.05);
-			flex-shrink: 0;
-		}
-
-		.hal-header {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			border-bottom: 1px dashed #333;
-			padding-bottom: 5px;
-			margin-bottom: 8px;
-		}
-
-		.hal-title {
-			color: #FF003C;
-			font-weight: bold;
-			font-size: 12px;
-			letter-spacing: 1px;
-			display: flex;
-			align-items: center;
-			gap: 5px;
-		}
-
-		.hal-eye {
-			width: 10px;
-			height: 10px;
-			background-color: #FF003C;
-			border-radius: 50%;
-			box-shadow: 0 0 8px #FF003C;
-			animation: pulse 2s infinite;
-		}
-
+		/* HAL-9000 HUD */
 		.hal-grid {
 			display: grid;
 			grid-template-columns: repeat(4, 1fr);
-			gap: 8px;
-			font-size: 9px;
-			color: #aaa;
+			gap: 10px;
 			margin-bottom: 10px;
 		}
 
 		.hal-metric {
-			background-color: #111;
-			padding: 6px;
-			border-radius: 4px;
-			border: 1px solid #222;
-			transition: all 0.3s;
+			background-color: #222;
+			padding: 10px;
+			border-radius: 2px;
 		}
 
 		.hal-metric span {
 			display: block;
-			color: #555;
-			margin-bottom: 3px;
+			color: var(--text-muted);
+			margin-bottom: 5px;
+			font-size: 11px;
 		}
 
 		.hal-metric strong {
-			font-size: 11px;
+			font-size: 13px;
+			color: var(--text-main);
 		}
 
 		.hal-prediction-box {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			background-color: #000;
-			padding: 10px 12px;
-			border-radius: 4px;
-			border: 1px solid #444;
-			border-left: 4px solid #ffb100;
+			background-color: #222;
+			padding: 10px 15px;
+			border-left: 4px solid var(--holo-blue);
+			margin-bottom: 5px;
 		}
 
 		.hal-pred-text {
-			font-size: 11px;
-			color: #888;
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
-		}
-
-		.hal-pred-text span.locked-badge {
-			background: #ffb100;
-			color: #000;
+			font-size: 14px;
+			color: var(--text-main);
 			font-weight: bold;
-			padding: 2px 4px;
-			border-radius: 2px;
-			font-size: 9px;
-			display: inline-block;
-			width: max-content;
 		}
 
 		.hal-pred-value {
-			font-size: 18px;
+			font-size: 20px;
 			font-weight: bold;
 			text-align: right;
 			display: flex;
@@ -658,37 +527,52 @@
 		}
 
 		.hal-confidence {
-			font-size: 10px;
-			color: #888;
+			font-size: 11px;
+			color: var(--text-muted);
 			font-weight: normal;
 			margin-top: 2px;
 		}
 
 		.hal-pred-up {
-			color: #00FF41;
-			text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+			color: var(--holo-green);
 		}
 
 		.hal-pred-down {
-			color: #FF003C;
-			text-shadow: 0 0 8px rgba(255, 0, 60, 0.4);
+			color: var(--holo-red);
 		}
 
 		.hal-pred-wait {
-			color: #ffb100;
+			color: var(--holo-orange);
+		}
+
+		/* CANVAS - DOUBLE CHARTS */
+		#chart-wrapper {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			flex-grow: 1;
+		}
+
+		.canvas-container {
+			position: relative;
+			background-color: #111;
+			border: 1px solid var(--border-main);
+			width: 100%;
+			border-radius: 2px;
 		}
 
 		#mum-grafik-container {
-			position: relative;
-			flex-grow: 1;
-			overflow: hidden;
-			border-radius: 4px;
-			background-color: #050507;
-			border: 1px solid #111;
-			min-height: 200px;
+			flex-grow: 2;
+			min-height: 150px;
 		}
 
-		#mum-grafik-canvas {
+		#balance-grafik-container {
+			flex-grow: 1;
+			min-height: 100px;
+			border-top: 2px solid var(--border-main);
+		}
+
+		canvas {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -696,55 +580,37 @@
 			height: 100%;
 		}
 
+		/* FOOTER STATUS */
 		#status {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			font-size: 11px;
-			color: #555;
-			border-top: 1px dashed #222;
-			padding-top: 8px;
-			margin-top: 8px;
+			font-size: 12px;
+			color: var(--text-muted);
+			border-top: 1px solid var(--border-main);
+			padding-top: 10px;
+			margin-top: 10px;
 			flex-shrink: 0;
 		}
 
-		.dot {
-			height: 8px;
-			width: 8px;
-			border-radius: 50%;
-			display: inline-block;
-			margin-right: 5px;
-			vertical-align: middle;
+		.color-green {
+			color: var(--holo-green) !important;
 		}
 
-		@keyframes pulse {
-			0% {
-				opacity: 0.6;
-			}
-
-			50% {
-				opacity: 1;
-				box-shadow: 0 0 12px #FF003C;
-			}
-
-			100% {
-				opacity: 0.6;
-			}
+		.color-red {
+			color: var(--holo-red) !important;
 		}
 
-		@keyframes pulse-green {
-			0% {
-				opacity: 0.6;
-			}
+		.color-orange {
+			color: var(--holo-orange) !important;
+		}
 
-			50% {
-				opacity: 1;
-				box-shadow: 0 0 10px #00FF41;
-			}
+		.color-blue {
+			color: var(--holo-blue) !important;
+		}
 
-			100% {
-				opacity: 0.6;
-			}
+		.color-muted {
+			color: var(--text-muted) !important;
 		}
 	</style>
 </head>
@@ -753,28 +619,21 @@
 
 	<div id="header">
 		<div class="header-left">
-			<h1>root@oracle-node:~# ./init_sync.sh --mode AUTONOMOUS_QUANT</h1>
+			<h1>BTC/USD QUANT AI (Pyth Auto-Peg)</h1>
 			<div class="price-line">
-				<span class="main-price" id="current-price">BAĞLANIYOR...</span>
-			</div>
-			<div><span class="sync-label">OTONOM YÖNETİM AKTİF: HAL-9000 </span></div>
-		</div>
+				<div class="main-price" id="current-price">CONNECTING...</div>
 
-		<div class="sync-box">
-			<div class="sync-title">
-				<span>🎯 PYTH AUTO-PEG</span>
-				<span class="pulse" id="peg-indicator" style="display:none;"></span>
+				<div class="header-balance-box">
+					<div class="bal-title">PORTFOLIO BALANCE</div>
+					<div class="bal-val" id="top-balance">$1,000.00</div>
+				</div>
 			</div>
-			<div class="sync-input-group">
-				<button id="auto-peg-btn" class="auto-peg active" onclick="toggleAutoPeg()">OTOMATİK SENKRON
-					(AÇIK)</button>
-			</div>
-			<div class="sync-status">Canlı Offset: <span id="offset-display" style="color:#00FF41">+0.00 USD</span>
-			</div>
+			<div style="font-size:12px; color:var(--text-muted); margin-top:5px;">Offset: <span id="offset-display"
+					class="color-green">+0.00 USD</span></div>
 		</div>
 
 		<div class="timer-box">
-			<div class="timer-title">AKTİF ZAMAN DİLİMİ (5m)</div>
+			<div class="timer-title">Timeframe (5m)</div>
 			<div class="timer-interval" id="interval-display">--:-- - --:--</div>
 			<div class="timer-display" id="countdown-timer">00:00</div>
 		</div>
@@ -783,115 +642,114 @@
 	<div id="main-container">
 		<div class="left-column">
 
-			<div class="portfolio-box">
+			<div class="bot-status-box" id="hal-bot-status">BOT STATUS: SLEEPING</div>
+
+			<div class="panel">
+				<div class="panel-title">Trade Execution</div>
 				<div class="balance-row">
-					<div>
-						<div class="balance-label">Sanal Portföy Büyüklüğü</div>
-						<div class="balance-value" id="virtual-balance">$1,000.00</div>
-					</div>
-					<button class="reset-btn" onclick="addFunds()">+1000$ Destek</button>
+					<button class="btn-simple" onclick="addFunds()" style="width: 100%;">+ DEPOSIT $1000</button>
 				</div>
 
 				<div class="auto-trade-switch">
-					<div class="auto-trade-label" id="auto-trade-label">
-						<span class="indicator"></span> OTO-PİLOT MODU
-					</div>
-					<button class="toggle-btn" id="btn-auto-toggle" onclick="toggleAutoTrade()">KAPALI</button>
+					<div class="auto-trade-label">Autopilot (Sniper)</div>
+					<button class="toggle-btn active" id="btn-auto-toggle" onclick="toggleAutoTrade()">ON</button>
 				</div>
 
 				<div class="odds-container">
 					<div class="odds-box">
-						<span class="odds-title">UP HİSSESİ (ANLIK)</span>
-						<span class="odds-val up" id="live-up-odds">0.50$</span>
+						<span class="odds-title">UP SHARE</span>
+						<span class="odds-val up" id="live-up-odds">$0.50</span>
 					</div>
 					<div class="odds-box">
-						<span class="odds-title">DOWN HİSSESİ (ANLIK)</span>
-						<span class="odds-val down" id="live-down-odds">0.50$</span>
+						<span class="odds-title">DOWN SHARE</span>
+						<span class="odds-val down" id="live-down-odds">$0.50</span>
 					</div>
 				</div>
 
-				<div class="manual-bet-cover active" id="manual-bet-ui">
-					<div class="bet-inputs">
-						<div class="bet-input-group">
-							<label><span>Manuel Yatırım ($)</span></label>
-							<input type="number" id="input-amount" value="100" step="10" min="1">
-						</div>
+				<div class="manual-bet-cover" id="manual-bet-ui">
+					<div class="bet-input-group">
+						<label><span>Stake ($)</span></label>
+						<input type="number" id="input-amount" value="100" step="10" min="1">
 					</div>
 					<div class="bet-buttons">
-						<button class="btn-bet btn-up" id="btn-buy-up" onclick="placeBet('UP')">UP AL</button>
-						<button class="btn-bet btn-down" id="btn-buy-down" onclick="placeBet('DOWN')">DOWN AL</button>
+						<button class="btn-bet btn-up" id="btn-buy-up" onclick="placeBet('UP')">BUY UP</button>
+						<button class="btn-bet btn-down" id="btn-buy-down" onclick="placeBet('DOWN')">BUY DOWN</button>
 					</div>
 				</div>
 
 				<div class="active-bet-card" id="active-bet-display">
 					<div class="active-bet-title">
-						<span>KİLİTLİ İŞLEM</span>
-						<span id="active-bet-type-badge" style="color:#fff;">--</span>
+						<span>ACTIVE POSITION</span>
+						<span id="active-bet-type-badge" style="color:var(--text-main);">--</span>
 					</div>
 					<div class="active-bet-details" id="active-bet-info">--</div>
 				</div>
 			</div>
 
-			<div class="panel" style="flex-shrink: 0; margin-bottom: 5px;">
-				<div class="panel-title"><span>🎯 HEDEF FİYAT (BEAT ENGINE)</span></div>
-				<div class="beat-engine-box" style="margin-bottom:0;">
+			<div class="panel">
+				<div class="panel-title">Target Engine</div>
+				<div class="beat-engine-box">
 					<div class="beat-row">
-						<span class="beat-label">Hedef (Price to Beat):</span>
-						<span class="beat-value" id="ptb-val">BEKLENİYOR</span>
+						<span class="beat-label">Price to Beat:</span>
+						<span class="beat-value" id="ptb-val">AWAITING</span>
 					</div>
 					<div class="beat-row">
-						<span class="beat-label">Fark (Gap):</span>
-						<span class="gap-neutral" id="ptb-gap">--</span>
+						<span class="beat-label">Delta (Gap):</span>
+						<span class="beat-value color-muted" id="ptb-gap">--</span>
 					</div>
 				</div>
 			</div>
 
 			<div class="panel" style="flex-grow: 1; min-height: 150px;">
-				<div class="panel-title" style="display: flex; justify-content: space-between;">
-					<span>DÖNGÜ GEÇMİŞİ</span>
-					<span style="color:#00FF41; cursor:pointer; font-size:9px;" onclick="clearHistory()">[SİL]</span>
+				<div class="panel-title">
+					<span>History Log</span>
+					<span style="font-size:11px; cursor:pointer;" onclick="clearHistory()">CLEAR</span>
 				</div>
 				<div id="history-logs"></div>
 			</div>
 		</div>
 
 		<div class="right-column">
-			<div class="panel" style="flex-grow: 1;">
-				<div class="panel-title">
-					<span>Bitcoin 5-Dakikalık Mumlar</span>
-					<span>[Son 4 Saat / 48 Mum]</span>
+
+			<div id="chart-wrapper">
+				<div class="panel" style="flex-grow: 2; padding-bottom: 0;">
+					<div class="panel-title">Bitcoin 5m Candlesticks</div>
+					<div class="canvas-container" id="mum-grafik-container" style="border:none;">
+						<canvas id="mum-grafik-canvas"></canvas>
+					</div>
 				</div>
-				<div id="mum-grafik-container">
-					<canvas id="mum-grafik-canvas"></canvas>
+
+				<div class="panel" style="flex-grow: 1; padding-top: 5px;">
+					<div class="panel-title" style="margin-bottom: 5px; font-size: 11px;">Equity Curve (Portfolio
+						Balance)</div>
+					<div class="canvas-container" id="balance-grafik-container" style="border:none;">
+						<canvas id="balance-grafik-canvas"></canvas>
+					</div>
 				</div>
 			</div>
 
-			<div class="panel hal-panel">
-				<div class="hal-header">
-					<div class="hal-title">
-						<div class="hal-eye"></div> HAL-9000 PROFESYONEL KUANT MOTORU
-					</div>
-					<div style="font-size: 10px; color:#888;">Başarı Skoru: <span id="hal-score"
-							style="color:#fff; font-weight:bold;">0W - 0L</span></div>
+			<div class="panel">
+				<div class="panel-title">
+					<span>HAL-9000 Quant AI</span>
+					<span>Score: <strong id="hal-score" style="color:var(--text-main);">0W - 0L</strong></span>
 				</div>
+
 				<div class="hal-grid">
 					<div class="hal-metric"><span>RSI (14)</span><strong id="hal-rsi">--</strong></div>
-					<div class="hal-metric"><span>EMA Kesişimi</span><strong id="hal-ema">--</strong></div>
-					<div class="hal-metric"><span>Volatilite (ATR)</span><strong id="hal-atr">--</strong></div>
+					<div class="hal-metric"><span>EMA Cross</span><strong id="hal-ema">--</strong></div>
+					<div class="hal-metric"><span>VWAP</span><strong id="hal-vwap">--</strong></div>
+					<div class="hal-metric"><span>Trend Vol</span><strong id="hal-trend">--</strong></div>
+					<div class="hal-metric"><span>Momentum</span><strong id="hal-mom">--</strong></div>
+					<div class="hal-metric"><span>MACD</span><strong id="hal-macd">--</strong></div>
+					<div class="hal-metric"><span>Bollinger</span><strong id="hal-bb">--</strong></div>
 					<div class="hal-metric"><span>Price Action</span><strong id="hal-pa">--</strong></div>
-					<div class="hal-metric"><span>Momentum (3m)</span><strong id="hal-mom">--</strong></div>
-					<div class="hal-metric"><span>Trend Hacmi</span><strong id="hal-trend">--</strong></div>
-					<div class="hal-metric"><span>S/R Durumu</span><strong id="hal-sr">--</strong></div>
-					<div class="hal-metric"><span>Bollinger (20)</span><strong id="hal-bb">--</strong></div>
 				</div>
+
 				<div class="hal-prediction-box">
-					<div class="hal-pred-text">
-						<span class="locked-badge">[KİLİTLİ ANALİZ]</span>
-						<span>Aktif 5-DK Kararı:</span>
-					</div>
+					<div class="hal-pred-text">Active Decision:</div>
 					<div class="hal-pred-value hal-pred-wait" id="hal-prediction">
-						HESAPLANIYOR...
-						<span class="hal-confidence" id="hal-confidence">Veri Toplanıyor</span>
+						CALCULATING...
+						<span class="hal-confidence" id="hal-confidence">Gathering Data</span>
 					</div>
 				</div>
 			</div>
@@ -899,20 +757,17 @@
 	</div>
 
 	<div id="status">
-		<div>
-			<span class="dot" id="index-status-dot" style="background-color: yellow;"></span> Fiyat: <span
-				id="index-status-text" style="color: yellow;">BEKLENİYOR</span> |
-			<span class="dot" id="binance-status-dot" style="background-color: yellow; margin-left:10px;"></span>
-			Grafik: <span id="binance-status-text" style="color: yellow;">BEKLENİYOR</span>
-		</div>
-		<div>Hafıza: <span style="color:#00FF41">Aktif</span> | root@oracle-node:~#</div>
+		<div>Data Stream: <span id="index-status-text" class="color-green">AWAITING</span></div>
+		<div>Memory: <span class="color-green">Local Storage</span></div>
 	</div>
 
 	<script>
 		const priceEl = document.getElementById('current-price');
 		const historyLogsEl = document.getElementById('history-logs');
-		const canvas = document.getElementById('mum-grafik-canvas');
-		const ctx = canvas.getContext('2d');
+		const canvasCandle = document.getElementById('mum-grafik-canvas');
+		const ctxCandle = canvasCandle.getContext('2d');
+		const canvasBalance = document.getElementById('balance-grafik-canvas');
+		const ctxBalance = canvasBalance.getContext('2d');
 
 		let currentRawPrice = 0;
 		let lastAdjustedPrice = 0;
@@ -921,17 +776,18 @@
 		const interval = '5m';
 		const limit = 48;
 
-		// --- LOCAL STORAGE & SIMULATOR STATE ---
+		// --- LOCAL STORAGE STATE ---
 		let state = {
 			balance: 1000.00,
+			balanceHistory: [], // YENİ: Bakiyenin zaman içindeki grafiği için
 			activeBet: null,
 			priceToBeat: 0,
 			halStats: { won: 0, lost: 0 },
-			lockedPredictionDirection: 0, // 1, -1, 0
-			lockedConfidence: 0, // % Güven oranı
+			lockedPredictionDirection: 0,
+			lockedConfidence: 0,
 			lockedPredictionHTML: "",
 			historyLogs: [],
-			isAutoTradeActive: false // Oto-pilot varsayılan kapalı
+			isAutoTradeActive: true
 		};
 
 		let currentUpOdds = 0.50;
@@ -939,10 +795,12 @@
 		let remainingSecondsGlobal = 300;
 
 		function loadState() {
-			const saved = localStorage.getItem('btcQuantBotState');
+			const saved = localStorage.getItem('btcAndroidStateV2');
 			if (saved) {
 				state = JSON.parse(saved);
-				if (state.isAutoTradeActive === undefined) state.isAutoTradeActive = false; // Eski veriler için
+				if (state.isAutoTradeActive === undefined) state.isAutoTradeActive = true;
+				if (!state.balanceHistory) state.balanceHistory = [];
+				if (state.balanceHistory.length === 0) state.balanceHistory.push({ t: 'START', b: state.balance });
 
 				document.getElementById('hal-score').innerText = `${state.halStats.won}W - ${state.halStats.lost}L`;
 				if (state.priceToBeat > 0) document.getElementById('ptb-val').innerText = `$${state.priceToBeat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -953,46 +811,56 @@
 					else if (state.lockedPredictionDirection === -1) predEl.className = "hal-pred-value hal-pred-down";
 				}
 				renderHistoryLogs();
+			} else {
+				state.balanceHistory.push({ t: 'START', b: state.balance });
 			}
 			syncAutoTradeUI();
 			updatePortfolioUI();
+			drawBalanceChart(); // Grafiği çiz
 		}
 
-		function saveState() { localStorage.setItem('btcQuantBotState', JSON.stringify(state)); }
+		function saveState() { localStorage.setItem('btcAndroidStateV2', JSON.stringify(state)); }
 
 		function clearHistory() {
-			if (confirm("Tüm geçmişi ve cüzdanı sıfırlamak istiyor musun?")) {
-				state = { balance: 1000, activeBet: null, priceToBeat: 0, halStats: { won: 0, lost: 0 }, lockedPredictionDirection: 0, lockedConfidence: 0, lockedPredictionHTML: "", historyLogs: [], isAutoTradeActive: false };
+			if (confirm("Clear all history and reset wallet?")) {
+				state = { balance: 1000, balanceHistory: [{ t: 'START', b: 1000 }], activeBet: null, priceToBeat: 0, halStats: { won: 0, lost: 0 }, lockedPredictionDirection: 0, lockedConfidence: 0, lockedPredictionHTML: "", historyLogs: [], isAutoTradeActive: true };
 				saveState(); loadState();
+				updateBotStatus("SLEEPING", "");
 			}
 		}
 
-		// --- OTO-PİLOT KONTROLLERİ ---
+		// --- UI CONTROLS ---
+		function updateBotStatus(text, className) {
+			const statusEl = document.getElementById('hal-bot-status');
+			statusEl.innerHTML = `BOT STATUS: ${text}`;
+			statusEl.className = `bot-status-box ${className}`;
+		}
+
 		function toggleAutoTrade() {
 			state.isAutoTradeActive = !state.isAutoTradeActive;
 			saveState();
 			syncAutoTradeUI();
+			if (!state.isAutoTradeActive) {
+				updateBotStatus("OFF", "");
+			} else {
+				updateBotStatus("ANALYZING MARKET...", "");
+			}
 		}
 
 		function syncAutoTradeUI() {
 			const btn = document.getElementById('btn-auto-toggle');
-			const label = document.getElementById('auto-trade-label');
 			const manualUI = document.getElementById('manual-bet-ui');
 
 			if (state.isAutoTradeActive) {
-				btn.innerText = "AÇIK";
-				btn.className = "toggle-btn active";
-				label.className = "auto-trade-label active";
-				manualUI.classList.remove('active'); // Manuel bahis kısmını gizle
+				btn.innerText = "ON"; btn.className = "toggle-btn active";
+				manualUI.classList.remove('active');
 			} else {
-				btn.innerText = "KAPALI";
-				btn.className = "toggle-btn";
-				label.className = "auto-trade-label";
-				manualUI.classList.add('active'); // Manuel bahis kısmını göster
+				btn.innerText = "OFF"; btn.className = "toggle-btn";
+				manualUI.classList.add('active');
 			}
 		}
 
-		// --- DİNAMİK AMM MOTORU ---
+		// --- DYNAMIC AMM ---
 		function calculateDynamicOdds() {
 			if (state.priceToBeat === 0 || lastAdjustedPrice === 0) return;
 			const gap = lastAdjustedPrice - state.priceToBeat;
@@ -1005,13 +873,14 @@
 
 			currentUpOdds = p; currentDownOdds = 1.00 - p;
 
-			document.getElementById('live-up-odds').innerText = `${currentUpOdds.toFixed(2)}$`;
-			document.getElementById('live-down-odds').innerText = `${currentDownOdds.toFixed(2)}$`;
+			document.getElementById('live-up-odds').innerText = `$${currentUpOdds.toFixed(2)}`;
+			document.getElementById('live-down-odds').innerText = `$${currentDownOdds.toFixed(2)}`;
 		}
 
-		// --- PORTFÖY VE BAHİS ---
+		// --- PORTFOLIO ---
 		function updatePortfolioUI() {
-			document.getElementById('virtual-balance').innerText = `$${state.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+			// YENİ: Bakiye artık header'ın yanındaki kutuda
+			document.getElementById('top-balance').innerText = `$${state.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 			const btnUp = document.getElementById('btn-buy-up');
 			const btnDown = document.getElementById('btn-buy-down');
@@ -1021,12 +890,12 @@
 				btnUp.disabled = true; btnDown.disabled = true;
 				activeBetCard.style.display = 'block';
 
-				const color = state.activeBet.type === 'UP' ? '#00FF41' : '#FF003C';
-				document.getElementById('active-bet-type-badge').innerText = state.activeBet.isAuto ? "(BOT OYNADI)" : "(MANUEL)";
+				const colorClass = state.activeBet.type === 'UP' ? 'color-green' : 'color-red';
+				document.getElementById('active-bet-type-badge').innerText = state.activeBet.isAuto ? "(BOT)" : "(MANUAL)";
 				document.getElementById('active-bet-info').innerHTML = `
-                    <span>Yön: <strong style="color:${color}">${state.activeBet.type}</strong></span>
-                    <span>Risk: $${state.activeBet.amount.toFixed(2)}</span>
-                    <span>Kâr Hedefi: <strong style="color:#00FF41">+$${(state.activeBet.payout - state.activeBet.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
+                    <span>DIR: <strong class="${colorClass}">${state.activeBet.type}</strong></span>
+                    <span>RISK: $${state.activeBet.amount.toFixed(2)}</span>
+                    <span>PROFIT: <strong class="color-green">+$${(state.activeBet.payout - state.activeBet.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></span>
                 `;
 			} else {
 				btnUp.disabled = false; btnDown.disabled = false;
@@ -1034,16 +903,20 @@
 			}
 		}
 
-		function addFunds() { state.balance += 1000; saveState(); updatePortfolioUI(); }
+		function addFunds() {
+			state.balance += 1000;
+			state.balanceHistory.push({ t: new Date().toLocaleTimeString('en-US', { hour12: false }), b: state.balance });
+			saveState(); updatePortfolioUI(); drawBalanceChart();
+		}
 
 		function placeBet(type, isAuto = false, autoAmount = 0, autoOdds = 0) {
 			if (state.activeBet) return;
 			if (state.priceToBeat === 0) return;
-			if (remainingSecondsGlobal <= 5) return;
+			if (remainingSecondsGlobal <= 10) return;
 
 			let amount = isAuto ? autoAmount : parseFloat(document.getElementById('input-amount').value);
-			if (isNaN(amount) || amount <= 0) return alert("Geçerli bir tutar girin!");
-			if (amount > state.balance) amount = state.balance; // Bakiye yetmezse max bas (bot için koruma)
+			if (isNaN(amount) || amount <= 0) return alert("Enter a valid amount!");
+			if (amount > state.balance) amount = state.balance;
 			if (amount <= 0) return;
 
 			let odds = isAuto ? autoOdds : (type === 'UP' ? currentUpOdds : currentDownOdds);
@@ -1062,10 +935,10 @@
 				div.className = `history-entry ${log.result}`;
 				div.innerHTML = `
                     <div class="hist-row">
-                        <span class="hist-time">[${log.time}] PİYASA:</span>
+                        <span class="hist-time">[${log.time}] MRKT:</span>
                         <span class="${log.marketClass}">${log.marketType} (${log.marketGap})</span>
                     </div>
-                    ${log.betMsg ? `<div class="hist-row" style="margin-top:2px;">${log.betMsg}</div>` : ''}
+                    ${log.betMsg ? `<div class="hist-row" style="margin-top:4px;">${log.betMsg}</div>` : ''}
                 `;
 				historyLogsEl.appendChild(div);
 			});
@@ -1078,19 +951,6 @@
 		}
 
 		// --- PYTH AUTO-PEG ---
-		let isAutoPegActive = true; let autoPegIntervalId = null;
-		function toggleAutoPeg() {
-			const btn = document.getElementById('auto-peg-btn'); const indicator = document.getElementById('peg-indicator');
-			isAutoPegActive = !isAutoPegActive;
-			if (isAutoPegActive) {
-				btn.innerText = "OTOMATİK SENKRON (AÇIK)"; btn.className = "auto-peg active"; indicator.style.display = "block";
-				syncWithPythOracle(); autoPegIntervalId = setInterval(syncWithPythOracle, 5000);
-			} else {
-				btn.innerText = "OTOMATİK SENKRON (KAPALI)"; btn.className = "auto-peg"; indicator.style.display = "none";
-				clearInterval(autoPegIntervalId);
-			}
-		}
-
 		async function syncWithPythOracle() {
 			if (currentRawPrice === 0) return;
 			try {
@@ -1113,13 +973,11 @@
 				}
 			} catch (error) { }
 		}
+		setInterval(syncWithPythOracle, 5000);
 
 		function updatePriceDisplay(rawPrice) {
 			currentRawPrice = rawPrice; const adjustedPrice = rawPrice + globalOffset;
 			priceEl.innerText = `$${adjustedPrice.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}`;
-
-			if (adjustedPrice > lastAdjustedPrice && lastAdjustedPrice !== 0) priceEl.style.color = '#00FF41';
-			else if (adjustedPrice < lastAdjustedPrice && lastAdjustedPrice !== 0) priceEl.style.color = '#FF003C';
 			lastAdjustedPrice = adjustedPrice;
 
 			if (state.priceToBeat === 0 && adjustedPrice > 0) {
@@ -1130,13 +988,13 @@
 
 			if (state.priceToBeat > 0) {
 				const gap = adjustedPrice - state.priceToBeat; const gapEl = document.getElementById('ptb-gap');
-				if (gap > 0) { gapEl.innerText = `+$${gap.toFixed(2)} (UP)`; gapEl.className = 'gap-up'; }
-				else if (gap < 0) { gapEl.innerText = `-$${Math.abs(gap).toFixed(2)} (DOWN)`; gapEl.className = 'gap-down'; }
-				else { gapEl.innerText = `$0.00 (EŞİT)`; gapEl.className = 'gap-neutral'; }
+				if (gap > 0) { gapEl.innerText = `+$${gap.toFixed(2)} (UP)`; gapEl.className = 'beat-value color-green'; }
+				else if (gap < 0) { gapEl.innerText = `-$${Math.abs(gap).toFixed(2)} (DOWN)`; gapEl.className = 'beat-value color-red'; }
+				else { gapEl.innerText = `$0.00 (FLAT)`; gapEl.className = 'beat-value color-muted'; }
 			}
 		}
 
-		// --- HAL-9000 YENİ NESİL KUANT MOTORU ---
+		// --- HAL-9000 METRICS ---
 		function updateLiveMetrics() {
 			if (klineData.length < 30) return null;
 			const closes = klineData.map(d => d.close + globalOffset);
@@ -1146,116 +1004,143 @@
 			const volumes = klineData.map(d => d.volume);
 			const currentClose = closes[closes.length - 1];
 
-			// 1. RSI
+			let cumTypicalVol = 0; let cumVol = 0;
+			for (let i = 0; i < closes.length; i++) {
+				const typicalPrice = (highs[i] + lows[i] + closes[i]) / 3;
+				cumTypicalVol += typicalPrice * volumes[i]; cumVol += volumes[i];
+			}
+			const vwap = cumTypicalVol / cumVol;
+			document.getElementById('hal-vwap').innerHTML = currentClose > vwap ? `<span class="color-green">BULL</span>` : `<span class="color-red">BEAR</span>`;
+
 			let gains = 0, losses = 0;
 			for (let i = closes.length - 14; i < closes.length; i++) { const diff = closes[i] - closes[i - 1]; if (diff >= 0) gains += diff; else losses -= diff; }
 			const rsi = 100 - (100 / (1 + ((gains / 14) / (losses / 14 || 1))));
-			document.getElementById('hal-rsi').innerHTML = rsi > 65 ? `<span style="color:#FF003C">${rsi.toFixed(1)} ŞİŞKİN</span>` : (rsi < 35 ? `<span style="color:#00FF41">${rsi.toFixed(1)} UCUZ</span>` : `<span style="color:#ffb100">${rsi.toFixed(1)} NÖTR</span>`);
+			document.getElementById('hal-rsi').innerHTML = rsi > 65 ? `<span class="color-red">${rsi.toFixed(1)}</span>` : (rsi < 35 ? `<span class="color-green">${rsi.toFixed(1)}</span>` : `<span class="color-muted">${rsi.toFixed(1)}</span>`);
 
-			// 2. EMA Crossover (9, 21)
 			const ema9 = closes.slice(-9).reduce((a, b) => a + b, 0) / 9;
 			const ema21 = closes.slice(-21).reduce((a, b) => a + b, 0) / 21;
-			let emaText = `<span style="color:#ffb100">KARIŞIK</span>`;
-			if (ema9 > ema21 * 1.001) emaText = `<span style="color:#00FF41">BULL CROSS</span>`;
-			if (ema9 < ema21 * 0.999) emaText = `<span style="color:#FF003C">BEAR CROSS</span>`;
+			let emaText = `<span class="color-muted">MIXED</span>`;
+			if (ema9 > ema21 * 1.001) emaText = `<span class="color-green">UP CROSS</span>`;
+			if (ema9 < ema21 * 0.999) emaText = `<span class="color-red">DWN CROSS</span>`;
 			document.getElementById('hal-ema').innerHTML = emaText;
 
-			// 3. Volatility (ATR - Average True Range - Basitleştirilmiş)
-			let trSum = 0;
-			for (let i = highs.length - 14; i < highs.length; i++) { trSum += (highs[i] - lows[i]); }
-			const atr = trSum / 14;
-			const atrPercent = (atr / currentClose) * 100;
-			document.getElementById('hal-atr').innerHTML = atrPercent > 0.15 ? `<span style="color:#00FF41">YÜKSEK (RİSK)</span>` : `<span style="color:#888">DÜŞÜK (GÜVENLİ)</span>`;
+			const momDiff = currentClose - closes[closes.length - 4];
+			document.getElementById('hal-mom').innerHTML = momDiff > 10 ? `<span class="color-green">UP</span>` : (momDiff < -10 ? `<span class="color-red">DOWN</span>` : `<span class="color-muted">FLAT</span>`);
 
-			// 4. Price Action (Son Kapanmış Mum Analizi)
+			const avgVol = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10; const currentVol = volumes[volumes.length - 1];
+			const isUpCandle = currentClose > closes[closes.length - 2];
+			document.getElementById('hal-trend').innerHTML = currentVol > avgVol * 1.2 ? (isUpCandle ? `<span class="color-green">BUY PRES</span>` : `<span class="color-red">SELL PRES</span>`) : `<span class="color-muted">WEAK</span>`;
+
+			const macd = (closes.slice(-12).reduce((a, b) => a + b, 0) / 12) - (closes.slice(-26).reduce((a, b) => a + b, 0) / 26);
+			document.getElementById('hal-macd').innerHTML = macd > 0 ? `<span class="color-green">POSITIVE</span>` : `<span class="color-red">NEGATIVE</span>`;
+
+			const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+			document.getElementById('hal-bb').innerHTML = currentClose > sma20 * 1.002 ? `<span class="color-red">TOP</span>` : (currentClose < sma20 * 0.998 ? `<span class="color-green">BOTTOM</span>` : `<span class="color-muted">MID</span>`);
+
 			const prevOpen = opens[opens.length - 2]; const prevClose = closes[closes.length - 2];
 			const prevHigh = highs[highs.length - 2]; const prevLow = lows[lows.length - 2];
-			let paText = `<span style="color:#888">STANDART</span>`;
 			const body = Math.abs(prevOpen - prevClose);
-			const upperWick = prevHigh - Math.max(prevOpen, prevClose);
 			const lowerWick = Math.min(prevOpen, prevClose) - prevLow;
-			if (lowerWick > body * 2 && prevClose > prevOpen) paText = `<span style="color:#00FF41">BULL PINBAR</span>`;
-			else if (upperWick > body * 2 && prevClose < prevOpen) paText = `<span style="color:#FF003C">BEAR PINBAR</span>`;
-			else if (body > atr * 1.5) paText = prevClose > prevOpen ? `<span style="color:#00FF41">BULL ENGULF</span>` : `<span style="color:#FF003C">BEAR ENGULF</span>`;
+			let paText = `<span class="color-muted">NORMAL</span>`;
+			if (lowerWick > body * 2 && prevClose > prevOpen) paText = `<span class="color-green">BULL PIN</span>`;
+			else if (body > (highs[highs.length - 2] - lows[lows.length - 2]) * 0.7) paText = prevClose > prevOpen ? `<span class="color-green">STRONG UP</span>` : `<span class="color-red">STRONG DWN</span>`;
 			document.getElementById('hal-pa').innerHTML = paText;
 
-			// 5. Momentum (3m)
-			const momDiff = currentClose - closes[closes.length - 4];
-			document.getElementById('hal-mom').innerHTML = momDiff > 10 ? `<span style="color:#00FF41">İVMELİ (UP)</span>` : (momDiff < -10 ? `<span style="color:#FF003C">İVMELİ (DWN)</span>` : `<span style="color:#ffb100">YATAY</span>`);
-
-			// 6. Trend Hacmi
-			const avgVol = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10; const currentVol = volumes[volumes.length - 1];
-			document.getElementById('hal-trend').innerHTML = currentVol > avgVol * 1.2 ? (currentClose > closes[closes.length - 2] ? `<span style="color:#00FF41">ALICI BASKISI</span>` : `<span style="color:#FF003C">SATICI BASKISI</span>`) : `<span style="color:#888">ZAYIF</span>`;
-
-			// 7. S/R
-			const max20 = Math.max(...highs.slice(-20)); const min20 = Math.min(...lows.slice(-20));
-			document.getElementById('hal-sr').innerHTML = currentClose > max20 * 0.998 ? `<span style="color:#FF003C">DİRENÇTE</span>` : (currentClose < min20 * 1.002 ? `<span style="color:#00FF41">DESTEKTE</span>` : `<span style="color:#888">KANAL İÇİ</span>`);
-
-			// 8. Bollinger
-			const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-			document.getElementById('hal-bb').innerHTML = currentClose > sma20 * 1.002 ? `<span style="color:#FF003C">ÜST BANT</span>` : (currentClose < sma20 * 0.998 ? `<span style="color:#00FF41">ALT BANT</span>` : `<span style="color:#ffb100">ORTA BANT</span>`);
-
-			return { rsi, ema9, ema21, atrPercent, paText, currentClose, sma20, currentVol, avgVol, momDiff, max20, min20 };
+			return { rsi, ema9, ema21, vwap, paText, currentClose, sma20, currentVol, avgVol, momDiff, macd, isUpCandle };
 		}
 
 		function generateLockedPrediction() {
 			const metrics = updateLiveMetrics(); if (!metrics) return;
-
 			let score = 0;
 
-			// Wall Street Weighting Logic
-			if (metrics.ema9 > metrics.ema21) score += 3; else score -= 3; // Trend has high weight
-			if (metrics.rsi > 68) score -= 2; else if (metrics.rsi < 32) score += 2; // Mean reversion
-			if (metrics.paText.includes("BULL")) score += 3; else if (metrics.paText.includes("BEAR")) score -= 3; // Price action confirms
-			if (metrics.momDiff > 10) score += 2; else if (metrics.momDiff < -10) score -= 2;
-			if (metrics.currentClose > metrics.max20 * 0.998) score -= 2; else if (metrics.currentClose < metrics.min20 * 1.002) score += 2;
+			if (metrics.currentClose > metrics.vwap) score += 2.5; else score -= 2.5;
+			if (metrics.ema9 > metrics.ema21) score += 2; else score -= 2;
+			if (metrics.macd > 0) score += 1.5; else score -= 1.5;
+			if (metrics.rsi < 45) score += 1.5; else if (metrics.rsi > 55) score -= 1.5;
+			if (metrics.momDiff > 5) score += 1; else if (metrics.momDiff < -5) score -= 1;
 			if (metrics.currentClose < metrics.sma20 * 0.998) score += 1; else if (metrics.currentClose > metrics.sma20 * 1.002) score -= 1;
 
 			const absoluteScore = Math.abs(score);
-			let confidence = 50 + (absoluteScore * 3.5);
-			if (confidence > 92) confidence = 92; // Max %92 güven (Gerçekçilik)
+			let confidence = 50 + (absoluteScore * 5);
+			if (confidence > 95) confidence = 95;
 
 			const predEl = document.getElementById('hal-prediction');
 			state.lockedConfidence = confidence;
 
-			if (score > 3) { // Daha seçici, threshold arttı
+			if (score >= 2.5) {
 				state.lockedPredictionDirection = 1;
-				state.lockedPredictionHTML = `UP <span class="hal-confidence">%${confidence.toFixed(1)} GÜVEN ORANI</span>`;
+				state.lockedPredictionHTML = `UP <span class="hal-confidence">${confidence.toFixed(1)}%</span>`;
 				predEl.className = "hal-pred-value hal-pred-up";
-			} else if (score < -3) {
+			} else if (score <= -2.5) {
 				state.lockedPredictionDirection = -1;
-				state.lockedPredictionHTML = `DOWN <span class="hal-confidence">%${confidence.toFixed(1)} GÜVEN ORANI</span>`;
+				state.lockedPredictionHTML = `DOWN <span class="hal-confidence">${confidence.toFixed(1)}%</span>`;
 				predEl.className = "hal-pred-value hal-pred-down";
 			} else {
 				state.lockedPredictionDirection = 0;
-				state.lockedPredictionHTML = `PAS <span class="hal-confidence">PİYASA ÇOK RİSKLİ</span>`;
+				state.lockedPredictionHTML = `WAIT <span class="hal-confidence">RISKY</span>`;
 				predEl.className = "hal-pred-value hal-pred-wait";
 			}
 			predEl.innerHTML = state.lockedPredictionHTML; saveState();
 		}
 
-		// --- BOT OTO-ALIM FONKSİYONU ---
-		function executeAutoTrade() {
-			if (!state.isAutoTradeActive || state.activeBet) return;
+		function executeSniperTrade() {
+			if (!state.isAutoTradeActive) {
+				updateBotStatus("SLEEPING (OFF)", "");
+				return;
+			}
 
-			// Bot sadece karar kesinse ve güven %60'ın üstündeyse işleme girer
-			if (state.lockedPredictionDirection !== 0 && state.lockedConfidence > 60) {
-				const type = state.lockedPredictionDirection === 1 ? 'UP' : 'DOWN';
-				const odds = type === 'UP' ? currentUpOdds : currentDownOdds;
+			if (state.activeBet) {
+				updateBotStatus("<span class='color-green'>IN POSITION</span>", "status-fired");
+				return;
+			}
 
-				// Risk Yönetimi: Güven yüksekse %10, düşükse %2 kasa basar.
-				let riskPerc = (state.lockedConfidence - 50) / 100;
-				riskPerc = Math.min(Math.max(riskPerc, 0.02), 0.10); // %2 ile %10 arası
+			if (state.lockedPredictionDirection === 0) {
+				updateBotStatus("<span class='color-orange'>RISKY MARKET (SKIPPED)</span>", "");
+				return;
+			}
 
-				let amount = state.balance * riskPerc;
-				if (amount < 10) amount = 10; // Min 10$ işlem
-				if (amount > state.balance) return; // Para bitmiş
+			if (remainingSecondsGlobal <= 250 && remainingSecondsGlobal > 240) {
+				updateBotStatus("<span class='color-green'>FIRED (TIMEOUT)</span>", "status-fired");
+				executeTradeLogic();
+				return;
+			}
 
-				placeBet(type, true, amount, odds);
+			if (remainingSecondsGlobal <= 240) {
+				updateBotStatus("<span class='color-muted'>STANDBY</span>", "");
+				return;
+			}
+
+			const gap = lastAdjustedPrice - state.priceToBeat;
+			const dir = state.lockedPredictionDirection;
+
+			let isPerfectEntry = false;
+			if (dir === 1 && gap <= 3) isPerfectEntry = true;
+			if (dir === -1 && gap >= -3) isPerfectEntry = true;
+
+			if (isPerfectEntry) {
+				updateBotStatus("<span class='color-green'>FIRED (PERFECT ENTRY)</span>", "status-fired");
+				executeTradeLogic();
+			} else {
+				updateBotStatus("<span class='color-orange'>SNIPING... (WAITING)</span>", "status-sniping");
 			}
 		}
 
-		// --- ZAMANLAYICI & DÖNGÜ ---
+		function executeTradeLogic() {
+			const dir = state.lockedPredictionDirection;
+			const type = dir === 1 ? 'UP' : 'DOWN';
+			const odds = type === 'UP' ? currentUpOdds : currentDownOdds;
+
+			let riskPerc = (state.lockedConfidence - 40) / 100;
+			riskPerc = Math.min(Math.max(riskPerc, 0.03), 0.12);
+
+			let amount = state.balance * riskPerc;
+			if (amount < 10) amount = 10;
+			if (amount > state.balance) amount = state.balance;
+
+			placeBet(type, true, amount, odds);
+		}
+
+		// --- CYCLE ENGINE ---
 		let lastSnapshotMinute = -1;
 		const timerEl = document.getElementById('countdown-timer');
 		const intervalDisplayEl = document.getElementById('interval-display');
@@ -1280,15 +1165,14 @@
 
 			calculateDynamicOdds();
 
-			// EĞER TAM 5 DAKİKA DOLDUYSA (00 Saniye)
 			if (minutes % 5 === 0 && seconds === 0) {
 				if (lastSnapshotMinute !== minutes) {
 					if (lastAdjustedPrice > 0 && state.priceToBeat > 0) {
 
 						const resultGap = lastAdjustedPrice - state.priceToBeat;
 						const actualResult = resultGap > 0 ? 1 : (resultGap < 0 ? -1 : 0);
-						const resultType = resultGap > 0 ? 'UP' : (resultGap < 0 ? 'DOWN' : 'NEUTRAL');
-						const resultClass = resultGap > 0 ? 'log-up' : (resultGap < 0 ? 'log-down' : '');
+						const resultType = resultGap > 0 ? 'UP' : (resultGap < 0 ? 'DOWN' : 'FLAT');
+						const resultClass = resultGap > 0 ? 'color-green' : (resultGap < 0 ? 'color-red' : '');
 						const sign = resultGap > 0 ? '+' : '';
 
 						const prevStartMin = (minutes - 5 < 0) ? 55 : minutes - 5;
@@ -1298,22 +1182,20 @@
 						let logResult = 'neutral';
 						let betMessage = '';
 
-						// 1. BAHİSİ KONTROL ET
 						if (state.activeBet) {
 							if ((state.activeBet.type === 'UP' && actualResult === 1) || (state.activeBet.type === 'DOWN' && actualResult === -1)) {
 								state.balance += state.activeBet.payout;
 								const netProfit = state.activeBet.payout - state.activeBet.amount;
-								betMessage = `<span style="color:#00FF41; font-weight:bold;">${state.activeBet.isAuto ? '🤖 BOT KAZANDI' : '💰 MANUEL KAZANÇ'}: +$${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+								betMessage = `<span class="color-green" style="font-weight:bold;">${state.activeBet.isAuto ? 'BOT WIN' : 'MANUAL WIN'}: +$${netProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
 							} else if (actualResult === 0) {
 								state.balance += state.activeBet.amount;
-								betMessage = `<span style="color:#888; font-weight:bold;">İADE: PİYASA EŞİT</span>`;
+								betMessage = `<span class="color-muted" style="font-weight:bold;">REFUND: TIE</span>`;
 							} else {
-								betMessage = `<span style="color:#FF003C; font-weight:bold;">${state.activeBet.isAuto ? '🤖 BOT KAYBETTİ' : '💸 MANUEL KAYIP'}: -$${state.activeBet.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+								betMessage = `<span class="color-red" style="font-weight:bold;">${state.activeBet.isAuto ? 'BOT LOSS' : 'MANUAL LOSS'}: -$${state.activeBet.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
 							}
 							state.activeBet = null;
 						}
 
-						// 2. TAHMİNİ DENETLE
 						if (state.lockedPredictionDirection !== 0) {
 							if (state.lockedPredictionDirection === actualResult) { state.halStats.won++; logResult = 'won'; }
 							else { state.halStats.lost++; logResult = 'lost'; }
@@ -1325,11 +1207,17 @@
 							marketGap: `${sign}$${Math.abs(resultGap).toFixed(2)}`, result: logResult, betMsg: betMessage
 						});
 
-						updatePortfolioUI();
+						// YENİ: Bakiyeyi grafiğe kaydet (Sadece 5 dakikada bir)
+						state.balanceHistory.push({ t: formatTime(hours, minutes), b: state.balance });
+						if (state.balanceHistory.length > 50) state.balanceHistory.shift();
 
-						// 3. YENİ DÖNEMİ KİLİTLE VE BOTU TETİKLE
+						updatePortfolioUI();
+						drawBalanceChart(); // Grafiği güncelle
+
 						state.priceToBeat = lastAdjustedPrice;
 						document.getElementById('ptb-val').innerText = `$${state.priceToBeat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+						updateBotStatus("ANALYZING MARKET...", "");
 
 						generateLockedPrediction();
 						saveState();
@@ -1337,21 +1225,19 @@
 					lastSnapshotMinute = minutes;
 				}
 			}
-			// YENİ: Saniye 01'de Bot İşlem Yapsın (Yeni oranlar oturduktan hemen sonra)
-			else if (minutes % 5 === 0 && seconds === 1) {
-				executeAutoTrade();
+			else {
+				updateLiveMetrics();
+				if (seconds > 0) executeSniperTrade();
 			}
-			else if (seconds % 2 === 0) { updateLiveMetrics(); }
 		}
 		setInterval(updateClockTimer, 1000);
 
-		// --- WEBSOCKETS ---
+		// --- WEBSOCKETS & CHART ---
 		const indexWs = new WebSocket('wss://dstream.binance.com/stream?streams=btcusd_perp@markPrice@1s');
-		indexWs.onopen = () => { document.getElementById('index-status-dot').style.background = '#00FF41'; document.getElementById('index-status-text').innerText = 'BAĞLI'; document.getElementById('index-status-text').style.color = '#00FF41'; };
 		indexWs.onmessage = (event) => { if (JSON.parse(event.data).stream === 'btcusd_perp@markPrice@1s') updatePriceDisplay(parseFloat(JSON.parse(event.data).data.p)); };
 
 		const binanceWs = new WebSocket(`wss://stream.binance.com:9443/stream?streams=btcusdt@kline_${interval}`);
-		binanceWs.onopen = () => { document.getElementById('binance-status-dot').style.background = '#00FF41'; document.getElementById('binance-status-text').innerText = 'BAĞLI'; document.getElementById('binance-status-text').style.color = '#00FF41'; };
+		binanceWs.onopen = () => { document.getElementById('index-status-text').innerText = 'CONNECTED'; };
 		binanceWs.onmessage = (event) => {
 			const data = JSON.parse(event.data).data;
 			if (klineData.length === 0) return;
@@ -1368,34 +1254,31 @@
 				const data = await res.json();
 				klineData = data.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }));
 
-				if (isAutoPegActive) {
-					document.getElementById('peg-indicator').style.display = "block";
-					await syncWithPythOracle(); autoPegIntervalId = setInterval(syncWithPythOracle, 5000);
-				}
-
+				syncWithPythOracle();
 				updateLiveMetrics();
 				if (state.lockedPredictionDirection === 0) generateLockedPrediction();
 				updateClockTimer();
 			} catch (error) { }
 		}
 
+		// 1. MUM GRAFİĞİ (ESKİ)
 		function drawCorrectedCandles() {
 			if (klineData.length === 0) return;
 			const container = document.getElementById('mum-grafik-container');
-			canvas.width = container.offsetWidth; canvas.height = container.offsetHeight;
-			const w = canvas.width; const h = canvas.height;
-			const margin = 20; const axisWidth = 55; const drawingW = w - axisWidth; const drawingH = h - (margin * 2) - 15;
+			canvasCandle.width = container.offsetWidth; canvasCandle.height = container.offsetHeight;
+			const w = canvasCandle.width; const h = canvasCandle.height;
+			const margin = 20; const axisWidth = 55; const drawingW = w - axisWidth; const drawingH = h - (margin * 2);
 
-			ctx.clearRect(0, 0, w, h);
+			ctxCandle.clearRect(0, 0, w, h);
 			const adjustedKlines = klineData.map(d => ({ open: d.open + globalOffset, high: d.high + globalOffset, low: d.low + globalOffset, close: d.close + globalOffset, time: d.time }));
 			const highPrices = adjustedKlines.map(d => d.high); const lowPrices = adjustedKlines.map(d => d.low);
 			let minPrice = Math.min(...lowPrices); let maxPrice = Math.max(...highPrices);
 			let priceRange = maxPrice - minPrice; if (priceRange === 0) priceRange = 100;
 			minPrice -= priceRange * 0.05; maxPrice += priceRange * 0.05; priceRange = maxPrice - minPrice;
 
-			ctx.strokeStyle = '#111'; ctx.lineWidth = 1;
-			for (let i = 0; i <= 5; i++) { const y = margin + drawingH - (drawingH / 5) * i; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(drawingW, y); ctx.stroke(); }
-			ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.moveTo(drawingW, 0); ctx.lineTo(drawingW, h); ctx.stroke();
+			ctxCandle.strokeStyle = '#222'; ctxCandle.lineWidth = 1;
+			for (let i = 0; i <= 5; i++) { const y = margin + drawingH - (drawingH / 5) * i; ctxCandle.beginPath(); ctxCandle.moveTo(0, y); ctxCandle.lineTo(drawingW, y); ctxCandle.stroke(); }
+			ctxCandle.strokeStyle = '#333'; ctxCandle.beginPath(); ctxCandle.moveTo(drawingW, 0); ctxCandle.lineTo(drawingW, h); ctxCandle.stroke();
 
 			const numCandles = adjustedKlines.length; const sectionWidth = drawingW / numCandles;
 			const candleWidth = Math.max(2, Math.min(10, sectionWidth * 0.6));
@@ -1406,29 +1289,82 @@
 				const yHigh = margin + drawingH - ((d.high - minPrice) / priceRange) * drawingH;
 				const yLow = margin + drawingH - ((d.low - minPrice) / priceRange) * drawingH;
 				const yClose = margin + drawingH - ((d.close - minPrice) / priceRange) * drawingH;
-				const isGreen = d.close >= d.open; const candleColor = isGreen ? '#00FF41' : '#FF003C';
+				const isGreen = d.close >= d.open; const candleColor = isGreen ? '#99cc00' : '#ff4444';
 
-				ctx.strokeStyle = candleColor; ctx.fillStyle = candleColor; ctx.lineWidth = 1;
-				ctx.beginPath(); ctx.moveTo(centerX, yHigh); ctx.lineTo(centerX, yLow); ctx.stroke();
+				ctxCandle.strokeStyle = candleColor; ctxCandle.fillStyle = candleColor; ctxCandle.lineWidth = 1;
+				ctxCandle.beginPath(); ctxCandle.moveTo(centerX, yHigh); ctxCandle.lineTo(centerX, yLow); ctxCandle.stroke();
 				const bodyTop = Math.min(yOpen, yClose); const bodyHeight = Math.max(1.5, Math.abs(yOpen - yClose));
-				ctx.fillRect(centerX - (candleWidth / 2), bodyTop, candleWidth, bodyHeight);
+				ctxCandle.fillRect(centerX - (candleWidth / 2), bodyTop, candleWidth, bodyHeight);
 
 				if (i % 6 === 0 || i === numCandles - 1) {
 					const date = new Date(d.time); const timeLabel = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-					ctx.font = '9px SF Mono'; ctx.fillStyle = i === numCandles - 1 ? '#00FF41' : '#555';
-					ctx.textAlign = 'center'; ctx.fillText(timeLabel, centerX, h - 10);
+					ctxCandle.font = '10px Roboto'; ctxCandle.fillStyle = '#888';
+					ctxCandle.textAlign = 'center'; ctxCandle.fillText(timeLabel, centerX, h - 5);
 				}
 			});
 
-			ctx.font = '10px SF Mono'; ctx.fillStyle = '#666'; ctx.textAlign = 'left';
+			ctxCandle.font = '11px Roboto'; ctxCandle.fillStyle = '#888'; ctxCandle.textAlign = 'left';
 			for (let i = 0; i <= 5; i++) {
 				const price = minPrice + (priceRange / 5) * i; const y = margin + drawingH - (priceRange / 5) * i;
-				ctx.fillText(`$${price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, drawingW + 5, y + 4);
+				ctxCandle.fillText(`$${price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, drawingW + 5, y + 4);
 			}
 		}
 
+		// 2. YENİ: ÇİZGİ GRAFİK (EQUITY CURVE)
+		function drawBalanceChart() {
+			if (!state.balanceHistory || state.balanceHistory.length === 0) return;
+			const container = document.getElementById('balance-grafik-container');
+			canvasBalance.width = container.offsetWidth; canvasBalance.height = container.offsetHeight;
+			const w = canvasBalance.width; const h = canvasBalance.height;
+			const margin = 15; const axisWidth = 55; const drawingW = w - axisWidth; const drawingH = h - (margin * 2);
+
+			ctxBalance.clearRect(0, 0, w, h);
+
+			let minB = Math.min(...state.balanceHistory.map(d => d.b));
+			let maxB = Math.max(...state.balanceHistory.map(d => d.b));
+			let range = maxB - minB;
+			if (range === 0) { minB *= 0.9; maxB *= 1.1; range = maxB - minB; }
+			if (range === 0) { range = 100; minB = 0; maxB = 100; }
+
+			// Grid
+			ctxBalance.fillStyle = '#888'; ctxBalance.font = '10px Roboto'; ctxBalance.textAlign = 'left';
+			ctxBalance.strokeStyle = '#222'; ctxBalance.lineWidth = 1;
+			for (let i = 0; i <= 2; i++) {
+				const y = margin + drawingH - (drawingH / 2) * i;
+				const val = minB + (range / 2) * i;
+				ctxBalance.fillText(`$${val.toLocaleString('en-US', { maximumFractionDigits: 0 })}`, drawingW + 5, y + 4);
+				ctxBalance.beginPath(); ctxBalance.moveTo(0, y); ctxBalance.lineTo(drawingW, y); ctxBalance.stroke();
+			}
+
+			// Çizgi
+			ctxBalance.beginPath();
+			ctxBalance.strokeStyle = '#33b5e5'; // Holo Blue
+			ctxBalance.lineWidth = 2;
+
+			const stepX = state.balanceHistory.length > 1 ? drawingW / (state.balanceHistory.length - 1) : drawingW;
+
+			state.balanceHistory.forEach((pt, i) => {
+				const x = i * stepX;
+				const y = margin + drawingH - ((pt.b - minB) / range) * drawingH;
+				if (i === 0) ctxBalance.moveTo(x, y);
+				else ctxBalance.lineTo(x, y);
+			});
+			ctxBalance.stroke();
+
+			// İçi boş/degrade dolgu
+			ctxBalance.lineTo(drawingW, margin + drawingH);
+			ctxBalance.lineTo(0, margin + drawingH);
+			ctxBalance.closePath();
+
+			const grad = ctxBalance.createLinearGradient(0, 0, 0, h);
+			grad.addColorStop(0, 'rgba(51, 181, 229, 0.4)');
+			grad.addColorStop(1, 'rgba(51, 181, 229, 0.0)');
+			ctxBalance.fillStyle = grad;
+			ctxBalance.fill();
+		}
+
 		function onPageLoad() { fetchHistoricalKlines(); }
-		window.addEventListener('resize', drawCorrectedCandles);
+		window.addEventListener('resize', () => { drawCorrectedCandles(); drawBalanceChart(); });
 	</script>
 </body>
 
