@@ -129,6 +129,42 @@
 		font-weight: 700;
 	}
 
+	#chart-tooltip {
+		position: absolute;
+		background: rgba(0, 0, 0, 0.85);
+		border: 1px solid var(--border);
+		padding: 6px;
+		font-size: 10px;
+		pointer-events: none;
+		z-index: 1000;
+		display: none;
+		color: var(--text);
+		white-space: nowrap;
+	}
+	.tt-val { font-weight: 700; margin-left: 4px; }
+	.tt-row { display: flex; justify-content: space-between; gap: 8px; }
+
+	.mode-btns {
+		display: flex;
+		gap: 4px;
+		margin-right: 12px;
+		margin-left: auto;
+	}
+	.mbtn {
+		background: var(--bg2);
+		border: 1px solid var(--border);
+		color: var(--muted);
+		padding: 3px 8px;
+		cursor: pointer;
+		font-size: 10px;
+		font-weight: 700;
+		transition: .12s;
+	}
+	.mbtn:hover { background: #1a1a1a; color: var(--text); }
+	.mbtn.active { border-color: var(--blue); color: var(--blue); background: rgba(56, 189, 248, 0.1); }
+	.mbtn.active.safe { border-color: var(--green); color: var(--green); background: rgba(34, 197, 94, 0.1); }
+	.mbtn.active.agg { border-color: var(--red); color: var(--red); background: rgba(239, 68, 68, 0.1); }
+
 	/* STATUS */
 	#sbar {
 		background: #09090990;
@@ -1312,6 +1348,11 @@
 
     <div><div class="lt">HAL-9000 · POLYMARKET BTC 5M</div></div>
   </div>
+  <div class="mode-btns">
+    <button class="mbtn safe" onclick="setMode('SAFE')" id="mbtn-SAFE">SAFE</button>
+    <button class="mbtn active" onclick="setMode('NORMAL')" id="mbtn-NORMAL">NORMAL</button>
+    <button class="mbtn agg" onclick="setMode('AGGRESSIVE')" id="mbtn-AGGRESSIVE">AGGR</button>
+  </div>
   <div class="hchips">
     <div class="hc"><div class="hcl">Balance</div><div class="hcv" id="hBal" style="color:var(--green)">₺—</div></div>
     <div class="hc"><div class="hcl">W/L</div><div class="hcv" id="hWL">0/0</div></div>
@@ -1624,6 +1665,7 @@
 
 <div id="toast"></div>
 <div id="flash"></div>
+<div id="chart-tooltip"></div>
 
 <script>
 'use strict';
@@ -2112,6 +2154,7 @@ function detectRegime(data) {
 function fakeoutCheck(data) {
   if (data.length < 5) return { clean: true, score: 1.0 };
   const last = data[data.length-1];
+  const prev = data[data.length-2];
   const atr = atrCalc(data.map(c=>c.h), data.map(c=>c.l), data.map(c=>c.c), 14);
 
   const body = Math.abs(last.c - last.o);
@@ -2119,9 +2162,13 @@ function fakeoutCheck(data) {
   const upperWick = last.h - Math.max(last.o, last.c);
   const lowerWick = Math.min(last.o, last.c) - last.l;
 
-  // Long wick = potential stop hunt / manipulation
-  const longUpperWick = upperWick > body * 2 && upperWick > atr * 0.4;
-  const longLowerWick = lowerWick > body * 2 && lowerWick > atr * 0.4;
+  // Enhanced Stop Hunt Detection: Fitil gövdenin 2 katından büyük ve ATR'nin önemli bir kısmıysa
+  const longUpperWick = upperWick > body * 2 && upperWick > atr * 0.5;
+  const longLowerWick = lowerWick > body * 2 && lowerWick > atr * 0.5;
+
+  // Likidite Süpürme Kontrolü: Önceki mumun seviyelerini ihlal edip geri dönmesi
+  const sweepHigh = last.h > prev.h && last.c < prev.h;
+  const sweepLow = last.l < prev.l && last.c > prev.l;
 
   // Sudden volume spike check (last candle volume vs avg)
   const avgVol = data.slice(-10, -1).reduce((a, c) => a + c.v, 0) / 9;
@@ -2130,15 +2177,18 @@ function fakeoutCheck(data) {
   // CVD divergence check
   const cvd = getCVDStats();
   const priceUp = last.c > last.o;
-  const cvdDisagrees = (priceUp && cvd.bias < -0.08) || (!priceUp && cvd.bias > 0.08);
+  // Daha sıkı CVD uyumsuzluk kontrolü
+  const cvdDisagrees = (priceUp && cvd.bias < -0.12) || (!priceUp && cvd.bias > 0.12);
 
   let issues = 0;
   if (longUpperWick || longLowerWick) issues++;
-  if (volSpike && body < range * 0.3) issues++; // spike but small body = manipulation
+  if (sweepHigh || sweepLow) issues++; // Yeni likidite avı cezası
+  if (volSpike && body < range * 0.3) issues += 1.5; // Hacimli fakeout daha tehlikelidir
   if (cvdDisagrees) issues++;
 
-  const score = Math.max(0.1, 1.0 - issues * 0.35);
-  return { clean: issues === 0, score, longUpperWick, longLowerWick, volSpike, cvdDisagrees };
+  // Çok daha agresif bir penaltı sistemi
+  const score = Math.max(0.1, 1.0 - issues * 0.25);
+  return { clean: issues === 0, score, longUpperWick, longLowerWick, volSpike, cvdDisagrees, sweepHigh, sweepLow };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2225,9 +2275,10 @@ function updateIndMem(outcome) {
     const right = (sig>0&&outcome==='UP') || (sig<0&&outcome==='DOWN');
     S.indMem[k].total++;
     if (right) S.indMem[k].correct++;
-    if (S.indMem[k].total > 40) {
-      S.indMem[k].correct = S.indMem[k].correct * (40/S.indMem[k].total);
-      S.indMem[k].total = 40;
+    // Increased memory limit from 40 to 100 for better long-term learning
+    if (S.indMem[k].total > 100) {
+      S.indMem[k].correct = S.indMem[k].correct * (100/S.indMem[k].total);
+      S.indMem[k].total = 100;
     }
   });
 }
@@ -2238,13 +2289,26 @@ function adaptWeights(outcome) {
     if (!S.W[k]) return;
     const sig = lastSignals[k]?.sig;
     if (!sig || sig === 0) return;
+
+    // Daha agresif öğrenme katsayıları
+    // Önceden: doğruysa +0.10, yanlışsa -0.10
+    // Yeni: Doğru bildiğinde hızlıca güven artsın (+0.20), yanlış bildiğinde daha yavaş düşsün (-0.10) (Risk iştahı yüksek)
     const right = (sig>0&&outcome==='UP') || (sig<0&&outcome==='DOWN');
-    S.W[k] += right ? 0.10 : -0.10;
-    S.W[k] = Math.max(0.1, Math.min(5.0, S.W[k]));
+    S.W[k] += right ? 0.20 : -0.10;
+
+    // Genişletilmiş ağırlık sınırları (eskiden max 5.0)
+    S.W[k] = Math.max(0.1, Math.min(8.0, S.W[k]));
   });
+
   const correct = lastAIPred === outcome;
   S.aiAcc.push(correct ? 1 : 0);
-  if (S.aiAcc.length > 30) S.aiAcc.shift();
+  // Daha uzun vadeli doğruluk oranı için son 60 tahmini tut (eskiden 30)
+  if (S.aiAcc.length > 60) S.aiAcc.shift();
+
+  if (!S.aiDirHist) S.aiDirHist = [];
+  S.aiDirHist.push(lastAIPred);
+  if (S.aiDirHist.length > 20) S.aiDirHist.shift();
+
   save();
 }
 
@@ -2486,6 +2550,26 @@ function runAI() {
   // Low volatility filter
   if (atr/price*100 < 0.05) dir = 'NEUTRAL'; // too quiet
 
+  // Exhaustion logic (prevent stubbornly guessing the same direction)
+  let exhaustionPenalty = 0;
+  if (dir !== 'NEUTRAL' && S.aiDirHist && S.aiDirHist.length >= 2) {
+    let recentSame = 0;
+    // Count how many consecutive times the AI predicted this exact direction in previous cycles
+    for (let i = S.aiDirHist.length - 1; i >= 0; i--) {
+      if (S.aiDirHist[i] === dir) recentSame++;
+      else break;
+    }
+
+    // If it has predicted the same direction 3+ times consecutively in previous cycles
+    if (recentSame >= 3) {
+      if ((dir === 'UP' && rsiVal > 70) || (dir === 'DOWN' && rsiVal < 30)) exhaustionPenalty = 8;
+      if ((dir === 'UP' && cvd.accel < 0) || (dir === 'DOWN' && cvd.accel > 0)) exhaustionPenalty += 5;
+      if (exhaustionPenalty > 0) {
+        exhaustionPenalty = Math.min(15, exhaustionPenalty + (recentSame - 2) * 2);
+      }
+    }
+  }
+
   // ── Confidence ──
   const recentAcc = S.aiAcc.length > 3 ? S.aiAcc.slice(-10).reduce((a,b)=>a+b,0)/Math.min(S.aiAcc.length,10) : 0.5;
   const confMul = 0.8 + recentAcc * 0.4;
@@ -2495,6 +2579,7 @@ function runAI() {
   if (htfAlign && htfDir !== 0) conf = Math.min(93, conf + 4);
   if (!sessGood) conf = Math.max(50, conf - 5); // 10'dan 5'e düşürdük
   if (!fakeoutClear) conf = Math.max(50, conf - 8);
+  if (exhaustionPenalty > 0) conf = Math.max(50, conf - exhaustionPenalty);
   if (dir === 'NEUTRAL') conf = 50;
 
   // ── Rationale ──
@@ -2517,6 +2602,7 @@ function runAI() {
     if (Math.abs(cvd.bias) > 0.05) f.push('CVD ' + (cvd.bias>0?'alım':'satış') + ' %' + (Math.abs(cvd.bias)*100).toFixed(0));
     if (obSig !== 0) f.push(obSig>0?'bull OB':'bear OB');
     if (fvgSig !== 0) f.push(fvgSig>0?'bull FVG':'bear FVG');
+    if (exhaustionPenalty > 0) f.push(`Yorulma -${exhaustionPenalty}`);
     rat = `${d}: ${f.slice(0,4).join(' · ')} | Stack:${confirmCount}/5 Uzlaşma:%${(agreement*100).toFixed(0)} Session:${session.name}`;
   }
 
@@ -2696,13 +2782,51 @@ function renderAI() {
 }
 
 // ═══════════════════════════════════════════════════════
-// RISK ENGINE
+// MODE SETTINGS & RISK ENGINE
 // ═══════════════════════════════════════════════════════
-const RISK = {
-  maxDrawdown: 0.30,    // 10% drawdown → pause
-  maxConsecLoss: 5,     // 5 consecutive losses → pause (4 çok kısıtlıydı)
-  maxRiskPerTrade: 0.33 // 12% max (calcStake bunu kendi yönetiyor)
+let currentMode = 'NORMAL'; // SAFE, NORMAL, AGGRESSIVE
+
+const MODES = {
+  SAFE: {
+    maxDrawdown: 0.15,
+    maxConsecLoss: 4,
+    maxRiskPerTrade: 0.15,
+    confThresholds: { sniper: 75, highConf: 85, confOverride: 78, market: 65 },
+    stackMin: 3,
+    stakeMulti: 0.5
+  },
+  NORMAL: {
+    maxDrawdown: 0.30,
+    maxConsecLoss: 6,
+    maxRiskPerTrade: 0.25,
+    confThresholds: { sniper: 70, highConf: 78, confOverride: 72, market: 60 },
+    stackMin: 2,
+    stakeMulti: 1.0
+  },
+  AGGRESSIVE: {
+    maxDrawdown: 0.50,
+    maxConsecLoss: 8,
+    maxRiskPerTrade: 0.40,
+    confThresholds: { sniper: 60, highConf: 70, confOverride: 65, market: 54 },
+    stackMin: 1,
+    stakeMulti: 1.5
+  }
 };
+
+let RISK = MODES[currentMode];
+
+function setMode(mode) {
+  if (!MODES[mode]) return;
+  currentMode = mode;
+  RISK = MODES[mode];
+
+  // Update UI buttons
+  document.querySelectorAll('.mbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mbtn-' + mode).classList.add('active');
+
+  showToast(`Mode switched to: ${mode}`, true);
+  checkRisk();
+}
 
 function checkRisk() {
   const dd = S.peakBalance > 0 ? (S.peakBalance - S.balance)/S.peakBalance : 0;
@@ -2743,26 +2867,23 @@ function calcStake(conf, ai) {
   const risk = checkRisk();
   if (risk.paused) return 0;
 
-  // Base stake: conf=50→3%, conf=65→5%, conf=80→8%, conf=93→12%
-  // Bu oranlar gerçek trader mantığıyla uyumlu
-  const confFactor = Math.max(0, (conf - 50) / 43); // 0 at 50, 1 at 93
-  const basePct = 0.03 + confFactor * 0.09; // 3% to 12%
+  const confFactor = Math.max(0, (conf - 50) / 43);
+  let basePct = 0.04 + confFactor * 0.14;
 
-  // HTF alignment bonus: +20%
+  // Mod çarpanı (Aggressive = x1.5, Safe = x0.5)
+  basePct *= RISK.stakeMulti;
+
   const htfBoost = (ai.htfDir !== 0 &&
-    ((ai.dir==='UP'&&ai.htfDir>0)||(ai.dir==='DOWN'&&ai.htfDir<0))) ? 1.2 : 1.0;
+    ((ai.dir==='UP'&&ai.htfDir>0)||(ai.dir==='DOWN'&&ai.htfDir<0))) ? 1.3 : 1.0;
 
-  // Confirmation stack bonus
-  const stackBoost = ai.stack?.count >= 4 ? 1.15 : 1.0;
+  const stackBoost = ai.stack?.count >= 4 ? 1.25 : 1.0;
 
-  // Session quality: dead zone'da %50 azalt, normal'de tam
-  const sessMulti = (ai.session?.quality || 0.7) < 0.35 ? 0.5 : 1.0;
+  const sessMulti = (ai.session?.quality || 0.7) < 0.35 ? 0.6 : 1.0;
 
-  // Drawdown protection: eğer %5+ düşükteyse %50 azalt
   const dd = S.peakBalance > 0 ? (S.peakBalance - S.balance)/S.peakBalance : 0;
-  const ddMulti = dd > 0.05 ? 0.5 : 1.0;
+  const ddMulti = dd > (RISK.maxDrawdown * 0.5) ? 0.6 : 1.0;
 
-  const finalPct = Math.min(0.12, basePct * htfBoost * stackBoost * sessMulti * ddMulti);
+  const finalPct = Math.min(RISK.maxRiskPerTrade, basePct * htfBoost * stackBoost * sessMulti * ddMulti);
   return Math.max(1, Math.floor(S.balance * finalPct));
 }
 
@@ -3054,12 +3175,64 @@ function drawChart() {
     C.fillText(t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0'),cx2(i),H-PB+11);
   }
 
+  // Draw Crosshair & Update Tooltip
+  if (hoverData.active && hoverData.x >= PL && hoverData.x <= W-PR) {
+    const idx = Math.floor((hoverData.x - PL) / cw2);
+    if (idx >= 0 && idx < vis.length + (kBuf && !kBuf.closed ? 1 : 0)) {
+      const c = idx < vis.length ? vis[idx] : kBuf;
+      if (c) {
+        const cx = cx2(idx);
+        // Crosshair lines
+        C.strokeStyle = 'rgba(255, 255, 255, 0.2)'; C.lineWidth = 1; C.setLineDash([2, 2]);
+        C.beginPath();
+        C.moveTo(cx, PT); C.lineTo(cx, H-PB); // Vertical
+        C.moveTo(PL, hoverData.y); C.lineTo(W-PR, hoverData.y); // Horizontal
+        C.stroke(); C.setLineDash([]);
+
+        // Tooltip
+        const tt = document.getElementById('chart-tooltip');
+        const dt = new Date(c.t);
+        tt.innerHTML = `
+          <div style="color:var(--dim);margin-bottom:2px">${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}</div>
+          <div class="tt-row"><span>O</span><span class="tt-val" style="color:${c.c>=c.o?'var(--green)':'var(--red)'}">${fpC(c.o)}</span></div>
+          <div class="tt-row"><span>H</span><span class="tt-val">${fpC(c.h)}</span></div>
+          <div class="tt-row"><span>L</span><span class="tt-val">${fpC(c.l)}</span></div>
+          <div class="tt-row"><span>C</span><span class="tt-val" style="color:${c.c>=c.o?'var(--green)':'var(--red)'}">${fpC(c.c)}</span></div>
+          <div class="tt-row"><span>V</span><span class="tt-val">${fp(c.v)}</span></div>
+        `;
+        tt.style.display = 'block';
+        tt.style.left = (hoverData.pageX + 15) + 'px';
+        tt.style.top = (hoverData.pageY + 15) + 'px';
+      }
+    } else {
+      document.getElementById('chart-tooltip').style.display = 'none';
+    }
+  } else {
+    document.getElementById('chart-tooltip').style.display = 'none';
+  }
+
   // OHLC
   if (vis.length>0){
     const l=vis[vis.length-1];
     document.getElementById('ohlcl').textContent=`O:${fpC(l.o)} H:${fpC(l.h)} L:${fpC(l.l)} C:${fpC(l.c)}`;
   }
 }
+
+let hoverData = { active: false, x: 0, y: 0, pageX: 0, pageY: 0 };
+cc.addEventListener('mousemove', (e) => {
+  const rect = cc.getBoundingClientRect();
+  hoverData.active = true;
+  hoverData.x = e.clientX - rect.left;
+  hoverData.y = e.clientY - rect.top;
+  hoverData.pageX = e.pageX;
+  hoverData.pageY = e.pageY;
+  drawChart(); // Redraw immediately to show crosshair smoothly
+});
+cc.addEventListener('mouseleave', () => {
+  hoverData.active = false;
+  document.getElementById('chart-tooltip').style.display = 'none';
+  drawChart();
+});
 
 function drawEquity() {
   const W=ec.width,H=ec.height;
@@ -3221,18 +3394,61 @@ function resolveCycle() {
 }
 
 // ═══════════════════════════════════════════════════════
-// AMM
+// AMM (Polymarket Simulated Order Book Skew)
 // ═══════════════════════════════════════════════════════
 function updateAMM(gap, sl) {
-  const td = 1-(sl/300)*0.3;
-  const norm = gap/(price*0.001+0.01);
-  const upP = Math.max(0.05, Math.min(0.95, sigmoid(norm*td*0.5)));
-  const dnP = 1 - upP;
-  document.getElementById('aup').textContent = '$' + upP.toFixed(3);
-  document.getElementById('adn').textContent = '$' + dnP.toFixed(3);
-  document.getElementById('auppay').textContent = (1/upP).toFixed(2)+'x';
-  document.getElementById('adnpay').textContent = (1/dnP).toFixed(2)+'x';
-  window._amm = { up:upP, dn:dnP };
+  // 1. Time Decay (Zaman daraldıkça oranların fiyata duyarlılığı artar)
+  const td = 1 - (sl / 300) * 0.4;
+
+  // 2. Saf Mesafe Olasılığı (Eski mantık - fiyat ne kadar uzakta)
+  const norm = gap / (price * 0.0008 + 0.01);
+  const pureDistanceProb = sigmoid(norm * td * 0.6);
+
+  // 3. Market Sentiment (Talep Kayması / Skew)
+  // AI'ın mevcut analizini alarak piyasa inancını (implied probability) çıkarıyoruz
+  const ai = getCachedAI();
+  let skew = 0; // -1 to 1 (Negatif: DOWN talebi, Pozitif: UP talebi)
+
+  if (ai) {
+    // CVD (Alım/Satım Hacmi) Çok büyük bir etken
+    const cvdBias = ai.cvd ? ai.cvd.bias : 0;
+
+    // HTF Trend Yönü
+    const htfBias = ai.htfBias || 0;
+
+    // AI'ın genel güven skoru (50 nötr, 90 kesin)
+    const confNorm = ai.dir === 'UP' ? (ai.conf - 50) / 50 : ai.dir === 'DOWN' ? -(ai.conf - 50) / 50 : 0;
+
+    // Sentiment'i harmanla (Polymarket halkının tahmini eğilimi)
+    skew = (cvdBias * 1.5) + (htfBias * 0.4) + (confNorm * 0.8);
+
+    // Limit skew between -1.2 and 1.2
+    skew = Math.max(-1.2, Math.min(1.2, skew));
+  }
+
+  // 4. Skew'i olasılığa çevir (sigmoid)
+  // Eğer skew 1.0 ise, %73 ihtimalle insanlar UP'a basıyor demektir.
+  const sentimentProb = sigmoid(skew * 1.5);
+
+  // 5. Nihai İhtimal Hesaplaması (Implied Probability)
+  // Döngü başlarken (sl=300) ağırlık tamamen sentiment'tedir.
+  // Zaman azaldıkça (sl=0) ağırlık fiyatın hedefe ulaşıp ulaşmadığına (distance) geçer.
+  const timeRatio = sl / 300;
+  let finalUpProb = (sentimentProb * timeRatio) + (pureDistanceProb * (1 - timeRatio));
+
+  // Minimum ve maksimum olasılık sınırları (Polymarket tarzı 1¢ - 99¢)
+  finalUpProb = Math.max(0.01, Math.min(0.99, finalUpProb));
+  const finalDnProb = 1 - finalUpProb;
+
+  // UI Güncelleme
+  document.getElementById('aup').textContent = '$' + finalUpProb.toFixed(3);
+  document.getElementById('adn').textContent = '$' + finalDnProb.toFixed(3);
+
+  // Ödül çarpanları (Payour multiplier)
+  document.getElementById('auppay').textContent = (1 / finalUpProb).toFixed(2) + 'x';
+  document.getElementById('adnpay').textContent = (1 / finalDnProb).toFixed(2) + 'x';
+
+  window._amm = { up: finalUpProb, dn: finalDnProb };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3302,7 +3518,7 @@ function getCachedAI() {
 }
 
 function sniperLogic(sl) {
-  const ai = getCachedAI(); // cached — sadece 1.8s'de bir yeniden hesaplanır
+  const ai = getCachedAI(); // cached
   if (ai.dir === 'NEUTRAL') {
     const sb = document.getElementById('snipbox');
     if (sb) sb.textContent = `⏸ NEUTRAL — ${ai.rat?.slice(0,60)||'...'}`;
@@ -3316,37 +3532,37 @@ function sniperLogic(sl) {
     return;
   }
 
-  // Confirmation stack: need at least 3/5
-  if (ai.stack.count < 2) {
-    document.getElementById('snipbox').textContent = `⏸ Stack ${ai.stack.count}/5 — min 2 gerekli`;
+  // Mode-based stack requirement
+  if (ai.stack.count < RISK.stackMin) {
+    document.getElementById('snipbox').textContent = `⏸ Stack ${ai.stack.count}/5 — min ${RISK.stackMin} gerekli (${currentMode})`;
     return;
   }
 
-  // Confidence
-  if (ai.conf < 58) return; // 65'den 58'e düşürdük
+  // Mode-based absolute minimum confidence
+  if (ai.conf < RISK.confThresholds.market) return;
 
-  // Session filter: no trades in dead zone
-  if (ai.session.quality < 0.3) {
+  // Session filter: relaxed
+  if (ai.session.quality < 0.2) {
     document.getElementById('snipbox').textContent = `🌙 ${ai.session.name} — trade önerilmez`;
     return;
   }
 
-  // CVD hard veto
+  // CVD veto slightly relaxed
   const cvdData = getCVDStats();
-  if (ai.dir==='UP' && cvdData.bias < -0.10) {
+  if (ai.dir==='UP' && cvdData.bias < -0.15) {
     document.getElementById('snipbox').textContent = `🚫 CVD veto: satış baskısı %${(-cvdData.bias*100).toFixed(0)}`;
     return;
   }
-  if (ai.dir==='DOWN' && cvdData.bias > 0.10) {
+  if (ai.dir==='DOWN' && cvdData.bias > 0.15) {
     document.getElementById('snipbox').textContent = `🚫 CVD veto: alım baskısı %${(cvdData.bias*100).toFixed(0)}`;
     return;
   }
 
-  // HTF filter: if 4H strongly disagrees, skip
+  // HTF veto relaxed
   if (ai.htf4h?.dir !== 0) {
     const htfConflict = (ai.dir==='UP' && ai.htf4h.dir < 0) || (ai.dir==='DOWN' && ai.htf4h.dir > 0);
-    if (htfConflict && Math.abs(ai.htfBias||0) > 0.8) { // daha az kısıtlayıcı
-      document.getElementById('snipbox').textContent = `⚠ 4H HTF çelişiyor (${ai.htf4h.label}) — skip`;
+    if (htfConflict && Math.abs(ai.htfBias||0) > 0.9) {
+      document.getElementById('snipbox').textContent = `⚠ 4H HTF çok güçlü ters yönde (${ai.htf4h.label}) — skip`;
       return;
     }
   }
@@ -3356,28 +3572,25 @@ function sniperLogic(sl) {
   let go = false;
   let entryReason = '';
 
+  const th = RISK.confThresholds;
+
   if (sl > 240) {
-    // İlk 60 saniye: sniper penceresi — ideal giriş bekle
-    // UP için: gap negatif veya küçük pozitif (fiyat ucuz/nötr)
-    // DOWN için: gap pozitif veya küçük negatif (fiyat pahalı/nötr)
-    const goodForUp   = ai.dir==='UP'   && gap <= 5;
-    const goodForDown = ai.dir==='DOWN' && gap >= -5;
-    if (goodForUp || goodForDown) { go=true; entryReason='sniper'; }
-    // Yüksek güven varsa gap ne olursa olsun gir
-    if (ai.conf >= 78 && absGap < 15) { go=true; entryReason='high-conf'; }
-
+    // sniper window
+    const goodForUp   = ai.dir==='UP'   && gap <= 8;
+    const goodForDown = ai.dir==='DOWN' && gap >= -8;
+    if (goodForUp || goodForDown) {
+      if (ai.conf >= th.sniper) { go=true; entryReason='sniper'; }
+    }
+    if (ai.conf >= th.highConf && absGap < 20) { go=true; entryReason='high-conf'; }
   } else if (sl > 120) {
-    // 120-240s: normal pencere — gap 10'dan az ise gir
-    if (absGap < 10) { go=true; entryReason='normal'; }
-    if (ai.conf >= 72) { go=true; entryReason='conf-override'; }
-
+    // normal window
+    if (absGap < 15 && ai.conf >= th.sniper) { go=true; entryReason='normal'; }
+    if (ai.conf >= th.confOverride) { go=true; entryReason='conf-override'; }
   } else if (sl > 30) {
-    // 30-120s: market order penceresi — mutlaka gir (eğer girmediysen)
-    go = true; entryReason='market-order';
-
+    if (ai.conf >= th.market) { go = true; entryReason='market-order'; }
   } else if (sl > 10) {
-    // Son 10-30s: son şans — sadece çok güvenliyse
-    if (ai.conf >= 75) { go=true; entryReason='last-chance'; }
+    // last chance window
+    if (ai.conf >= th.market + 6) { go=true; entryReason='last-chance'; }
   }
 
   if (go) {
