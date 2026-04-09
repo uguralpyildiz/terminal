@@ -2112,6 +2112,7 @@ function detectRegime(data) {
 function fakeoutCheck(data) {
   if (data.length < 5) return { clean: true, score: 1.0 };
   const last = data[data.length-1];
+  const prev = data[data.length-2];
   const atr = atrCalc(data.map(c=>c.h), data.map(c=>c.l), data.map(c=>c.c), 14);
 
   const body = Math.abs(last.c - last.o);
@@ -2119,9 +2120,13 @@ function fakeoutCheck(data) {
   const upperWick = last.h - Math.max(last.o, last.c);
   const lowerWick = Math.min(last.o, last.c) - last.l;
 
-  // Long wick = potential stop hunt / manipulation
-  const longUpperWick = upperWick > body * 2 && upperWick > atr * 0.4;
-  const longLowerWick = lowerWick > body * 2 && lowerWick > atr * 0.4;
+  // Enhanced Stop Hunt Detection: Fitil gövdenin 2 katından büyük ve ATR'nin önemli bir kısmıysa
+  const longUpperWick = upperWick > body * 2 && upperWick > atr * 0.5;
+  const longLowerWick = lowerWick > body * 2 && lowerWick > atr * 0.5;
+
+  // Likidite Süpürme Kontrolü: Önceki mumun seviyelerini ihlal edip geri dönmesi
+  const sweepHigh = last.h > prev.h && last.c < prev.h;
+  const sweepLow = last.l < prev.l && last.c > prev.l;
 
   // Sudden volume spike check (last candle volume vs avg)
   const avgVol = data.slice(-10, -1).reduce((a, c) => a + c.v, 0) / 9;
@@ -2130,15 +2135,18 @@ function fakeoutCheck(data) {
   // CVD divergence check
   const cvd = getCVDStats();
   const priceUp = last.c > last.o;
-  const cvdDisagrees = (priceUp && cvd.bias < -0.08) || (!priceUp && cvd.bias > 0.08);
+  // Daha sıkı CVD uyumsuzluk kontrolü
+  const cvdDisagrees = (priceUp && cvd.bias < -0.12) || (!priceUp && cvd.bias > 0.12);
 
   let issues = 0;
   if (longUpperWick || longLowerWick) issues++;
-  if (volSpike && body < range * 0.3) issues++; // spike but small body = manipulation
+  if (sweepHigh || sweepLow) issues++; // Yeni likidite avı cezası
+  if (volSpike && body < range * 0.3) issues += 1.5; // Hacimli fakeout daha tehlikelidir
   if (cvdDisagrees) issues++;
 
-  const score = Math.max(0.1, 1.0 - issues * 0.35);
-  return { clean: issues === 0, score, longUpperWick, longLowerWick, volSpike, cvdDisagrees };
+  // Çok daha agresif bir penaltı sistemi
+  const score = Math.max(0.1, 1.0 - issues * 0.25);
+  return { clean: issues === 0, score, longUpperWick, longLowerWick, volSpike, cvdDisagrees, sweepHigh, sweepLow };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2225,9 +2233,10 @@ function updateIndMem(outcome) {
     const right = (sig>0&&outcome==='UP') || (sig<0&&outcome==='DOWN');
     S.indMem[k].total++;
     if (right) S.indMem[k].correct++;
-    if (S.indMem[k].total > 40) {
-      S.indMem[k].correct = S.indMem[k].correct * (40/S.indMem[k].total);
-      S.indMem[k].total = 40;
+    // Increased memory limit from 40 to 100 for better long-term learning
+    if (S.indMem[k].total > 100) {
+      S.indMem[k].correct = S.indMem[k].correct * (100/S.indMem[k].total);
+      S.indMem[k].total = 100;
     }
   });
 }
@@ -2238,13 +2247,21 @@ function adaptWeights(outcome) {
     if (!S.W[k]) return;
     const sig = lastSignals[k]?.sig;
     if (!sig || sig === 0) return;
+
+    // Daha agresif öğrenme katsayıları
+    // Önceden: doğruysa +0.10, yanlışsa -0.10
+    // Yeni: Doğru bildiğinde hızlıca güven artsın (+0.20), yanlış bildiğinde daha yavaş düşsün (-0.10) (Risk iştahı yüksek)
     const right = (sig>0&&outcome==='UP') || (sig<0&&outcome==='DOWN');
-    S.W[k] += right ? 0.10 : -0.10;
-    S.W[k] = Math.max(0.1, Math.min(5.0, S.W[k]));
+    S.W[k] += right ? 0.20 : -0.10;
+
+    // Genişletilmiş ağırlık sınırları (eskiden max 5.0)
+    S.W[k] = Math.max(0.1, Math.min(8.0, S.W[k]));
   });
+
   const correct = lastAIPred === outcome;
   S.aiAcc.push(correct ? 1 : 0);
-  if (S.aiAcc.length > 30) S.aiAcc.shift();
+  // Daha uzun vadeli doğruluk oranı için son 60 tahmini tut (eskiden 30)
+  if (S.aiAcc.length > 60) S.aiAcc.shift();
   save();
 }
 
@@ -2699,9 +2716,9 @@ function renderAI() {
 // RISK ENGINE
 // ═══════════════════════════════════════════════════════
 const RISK = {
-  maxDrawdown: 0.30,    // 10% drawdown → pause
-  maxConsecLoss: 5,     // 5 consecutive losses → pause (4 çok kısıtlıydı)
-  maxRiskPerTrade: 0.33 // 12% max (calcStake bunu kendi yönetiyor)
+  maxDrawdown: 0.50,    // Increased from 0.30 to 0.50 to tolerate deeper swings and be less fearful
+  maxConsecLoss: 8,     // Increased from 5 to 8 to avoid pausing during normal bad streaks
+  maxRiskPerTrade: 0.40 // Allowed to risk more per trade in high confidence
 };
 
 function checkRisk() {
@@ -2743,26 +2760,26 @@ function calcStake(conf, ai) {
   const risk = checkRisk();
   if (risk.paused) return 0;
 
-  // Base stake: conf=50→3%, conf=65→5%, conf=80→8%, conf=93→12%
-  // Bu oranlar gerçek trader mantığıyla uyumlu
-  const confFactor = Math.max(0, (conf - 50) / 43); // 0 at 50, 1 at 93
-  const basePct = 0.03 + confFactor * 0.09; // 3% to 12%
+  // Base stake: conf=50→4%, conf=65→7%, conf=80→12%, conf=93→18%
+  // Daha cesur ve kâr odaklı bahis oranları
+  const confFactor = Math.max(0, (conf - 50) / 43);
+  const basePct = 0.04 + confFactor * 0.14;
 
-  // HTF alignment bonus: +20%
+  // HTF alignment bonus: +30%
   const htfBoost = (ai.htfDir !== 0 &&
-    ((ai.dir==='UP'&&ai.htfDir>0)||(ai.dir==='DOWN'&&ai.htfDir<0))) ? 1.2 : 1.0;
+    ((ai.dir==='UP'&&ai.htfDir>0)||(ai.dir==='DOWN'&&ai.htfDir<0))) ? 1.3 : 1.0;
 
   // Confirmation stack bonus
-  const stackBoost = ai.stack?.count >= 4 ? 1.15 : 1.0;
+  const stackBoost = ai.stack?.count >= 4 ? 1.25 : 1.0;
 
-  // Session quality: dead zone'da %50 azalt, normal'de tam
-  const sessMulti = (ai.session?.quality || 0.7) < 0.35 ? 0.5 : 1.0;
+  // Session quality
+  const sessMulti = (ai.session?.quality || 0.7) < 0.35 ? 0.6 : 1.0;
 
-  // Drawdown protection: eğer %5+ düşükteyse %50 azalt
+  // Drawdown protection (gevşetildi)
   const dd = S.peakBalance > 0 ? (S.peakBalance - S.balance)/S.peakBalance : 0;
-  const ddMulti = dd > 0.05 ? 0.5 : 1.0;
+  const ddMulti = dd > 0.15 ? 0.6 : 1.0; // Drawdown %15'i geçmeden korkma
 
-  const finalPct = Math.min(0.12, basePct * htfBoost * stackBoost * sessMulti * ddMulti);
+  const finalPct = Math.min(0.20, basePct * htfBoost * stackBoost * sessMulti * ddMulti);
   return Math.max(1, Math.floor(S.balance * finalPct));
 }
 
@@ -3302,7 +3319,7 @@ function getCachedAI() {
 }
 
 function sniperLogic(sl) {
-  const ai = getCachedAI(); // cached — sadece 1.8s'de bir yeniden hesaplanır
+  const ai = getCachedAI(); // cached
   if (ai.dir === 'NEUTRAL') {
     const sb = document.getElementById('snipbox');
     if (sb) sb.textContent = `⏸ NEUTRAL — ${ai.rat?.slice(0,60)||'...'}`;
@@ -3316,37 +3333,37 @@ function sniperLogic(sl) {
     return;
   }
 
-  // Confirmation stack: need at least 3/5
-  if (ai.stack.count < 2) {
-    document.getElementById('snipbox').textContent = `⏸ Stack ${ai.stack.count}/5 — min 2 gerekli`;
+  // Confirmation stack: lowered from 2 to 1 (more aggressive)
+  if (ai.stack.count < 1) {
+    document.getElementById('snipbox').textContent = `⏸ Stack ${ai.stack.count}/5 — min 1 gerekli`;
     return;
   }
 
-  // Confidence
-  if (ai.conf < 58) return; // 65'den 58'e düşürdük
+  // Confidence lowered to 54 for taking more risky trades
+  if (ai.conf < 54) return;
 
-  // Session filter: no trades in dead zone
-  if (ai.session.quality < 0.3) {
+  // Session filter: relaxed
+  if (ai.session.quality < 0.2) {
     document.getElementById('snipbox').textContent = `🌙 ${ai.session.name} — trade önerilmez`;
     return;
   }
 
-  // CVD hard veto
+  // CVD veto slightly relaxed
   const cvdData = getCVDStats();
-  if (ai.dir==='UP' && cvdData.bias < -0.10) {
+  if (ai.dir==='UP' && cvdData.bias < -0.15) {
     document.getElementById('snipbox').textContent = `🚫 CVD veto: satış baskısı %${(-cvdData.bias*100).toFixed(0)}`;
     return;
   }
-  if (ai.dir==='DOWN' && cvdData.bias > 0.10) {
+  if (ai.dir==='DOWN' && cvdData.bias > 0.15) {
     document.getElementById('snipbox').textContent = `🚫 CVD veto: alım baskısı %${(cvdData.bias*100).toFixed(0)}`;
     return;
   }
 
-  // HTF filter: if 4H strongly disagrees, skip
+  // HTF veto relaxed
   if (ai.htf4h?.dir !== 0) {
     const htfConflict = (ai.dir==='UP' && ai.htf4h.dir < 0) || (ai.dir==='DOWN' && ai.htf4h.dir > 0);
-    if (htfConflict && Math.abs(ai.htfBias||0) > 0.8) { // daha az kısıtlayıcı
-      document.getElementById('snipbox').textContent = `⚠ 4H HTF çelişiyor (${ai.htf4h.label}) — skip`;
+    if (htfConflict && Math.abs(ai.htfBias||0) > 0.9) {
+      document.getElementById('snipbox').textContent = `⚠ 4H HTF çok güçlü ters yönde (${ai.htf4h.label}) — skip`;
       return;
     }
   }
@@ -3357,27 +3374,20 @@ function sniperLogic(sl) {
   let entryReason = '';
 
   if (sl > 240) {
-    // İlk 60 saniye: sniper penceresi — ideal giriş bekle
-    // UP için: gap negatif veya küçük pozitif (fiyat ucuz/nötr)
-    // DOWN için: gap pozitif veya küçük negatif (fiyat pahalı/nötr)
-    const goodForUp   = ai.dir==='UP'   && gap <= 5;
-    const goodForDown = ai.dir==='DOWN' && gap >= -5;
+    // sniper window
+    const goodForUp   = ai.dir==='UP'   && gap <= 8;
+    const goodForDown = ai.dir==='DOWN' && gap >= -8;
     if (goodForUp || goodForDown) { go=true; entryReason='sniper'; }
-    // Yüksek güven varsa gap ne olursa olsun gir
-    if (ai.conf >= 78 && absGap < 15) { go=true; entryReason='high-conf'; }
-
+    if (ai.conf >= 70 && absGap < 20) { go=true; entryReason='high-conf'; }
   } else if (sl > 120) {
-    // 120-240s: normal pencere — gap 10'dan az ise gir
-    if (absGap < 10) { go=true; entryReason='normal'; }
-    if (ai.conf >= 72) { go=true; entryReason='conf-override'; }
-
+    // normal window
+    if (absGap < 15) { go=true; entryReason='normal'; }
+    if (ai.conf >= 65) { go=true; entryReason='conf-override'; }
   } else if (sl > 30) {
-    // 30-120s: market order penceresi — mutlaka gir (eğer girmediysen)
     go = true; entryReason='market-order';
-
   } else if (sl > 10) {
-    // Son 10-30s: son şans — sadece çok güvenliyse
-    if (ai.conf >= 75) { go=true; entryReason='last-chance'; }
+    // last chance window
+    if (ai.conf >= 60) { go=true; entryReason='last-chance'; }
   }
 
   if (go) {
